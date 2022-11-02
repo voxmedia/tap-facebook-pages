@@ -1,0 +1,228 @@
+{
+	"type": [
+		"null",
+		"object"
+	],
+	"properties": {
+		"id": {
+			"type": [
+				"null",
+				"string"
+			]
+		},
+		"page_id": {
+			"type": [
+				"null",
+				"string"
+			]
+		},
+		"allowed_advertising_objects": {
+			"type": [
+				"null",
+				"string"
+			]
+		},
+		"created_time": {
+			"type": [
+				"null",
+				"string"
+			]
+		},
+		"full_picture": {
+			"type": [
+				"null",
+				"string"
+			]
+		},
+		"icon": {
+			"type": [
+				"null",
+				"string"
+			]
+		},
+		"message": {
+			"type": [
+				"null",
+				"string"
+			]
+		},
+		"is_eligible_for_promotion": {
+			"type": [
+				"null",
+				"boolean"
+			]
+		},
+		"is_expired": {
+			"type": [
+				"null",
+				"boolean"
+			]
+		},
+		"is_hidden": {
+			"type": [
+				"null",
+				"boolean"
+			]
+		},
+		"is_instagram_eligible": {
+			"type": [
+				"null",
+				"boolean"
+			]
+		},
+		"is_popular": {
+			"type": [
+				"null",
+				"boolean"
+			]
+		},
+		"is_published": {
+			"type": [
+				"null",
+				"boolean"
+			]
+		},
+		"is_spherical": {
+			"type": [
+				"null",
+				"boolean"
+			]
+		},
+		"parent_id": {
+			"type": [
+				"null",
+				"string"
+			]
+		},
+		"permalink_url": {
+			"type": [
+				"null",
+				"string"
+			]
+		},
+		"place": {
+			"type": [
+				"null",
+				"object"
+			],
+			"properties": {
+				"id": {
+					"type": [
+						"null",
+						"string"
+					]
+				},
+				"name": {
+					"type": [
+						"null",
+						"string"
+					]
+				},
+				"location": {
+					"type": [
+						"null",
+						"object"
+					],
+					"properties": {
+						"city": {
+							"type": [
+								"null",
+								"string"
+							]
+						},
+						"city_id": {
+							"type": [
+								"null",
+								"integer"
+							]
+						},
+						"country": {
+							"type": [
+								"null",
+								"string"
+							]
+						},
+						"country_code": {
+							"type": [
+								"null",
+								"string"
+							]
+						},
+						"latitude": {
+							"type": [
+								"null",
+								"number"
+							]
+						},
+						"located_in": {
+							"type": [
+								"null",
+								"string"
+							]
+						},
+						"longitude": {
+							"type": [
+								"null",
+								"number"
+							]
+						},
+						"name": {
+							"type": [
+								"null",
+								"string"
+							]
+						},
+						"region": {
+							"type": [
+								"null",
+								"string"
+							]
+						},
+						"region_id": {
+							"type": [
+								"null",
+								"integer"
+							]
+						},
+						"state": {
+							"type": [
+								"null",
+								"string"
+							]
+						},
+						"street": {
+							"type": [
+								"null",
+								"string"
+							]
+						},
+						"zip": {
+							"type": [
+								"null",
+								"string"
+							]
+						}
+					}
+				}
+			}
+		},
+		"story": {
+			"type": [
+				"null",
+				"string"
+			]
+		},
+		"subscribed": {
+			"type": [
+				"null",
+				"boolean"
+			]
+		},
+		"updated_time": {
+			"type": [
+				"null",
+				"string"
+			]
+		}
+	}
+}

@@ -1,0 +1,31 @@
+version: 1
+send_anonymous_usage_stats: true
+project_id: "tap-facebook-pages"
+include_paths:
+  - ./*.meltano.yml
+default_environment: test
+environments:
+- name: test
+plugins:
+  extractors:
+  - name: "tap-facebook-pages"
+    namespace: "tap_facebook_pages"
+    pip_url: -e .
+    capabilities:
+    - state
+    - catalog
+    - discover
+    - about
+    - stream-maps
+    config:
+      start_date: '2010-01-01T00:00:00Z'
+    settings:
+    - name: user_token
+      kind: password
+    - name: page_ids
+    - name: start_date
+      value: '2022-10-01T00:00:00Z'
+  loaders:
+  - name: target-jsonl
+    variant: andyh1203
+    pip_url: target-jsonl

@@ -1,0 +1,38 @@
+{
+	"type": [
+		"null",
+		"object"
+	],
+	"properties": {
+		"name": {
+			"type": [
+				"null",
+				"string"
+			]
+		},
+		"id": {
+			"type": [
+				"null",
+				"string"
+			]
+		},
+		"page_id": {
+			"type": [
+				"null",
+				"string"
+			]
+		},
+		"post_id": {
+			"type": [
+				"null",
+				"string"
+			]
+		},
+		"post_created_time": {
+			"type": [
+				"null",
+				"string"
+			]
+		}
+	}
+}
