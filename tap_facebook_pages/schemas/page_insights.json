@@ -1,62 +1,64 @@
 {
-	"type": [
-		"null",
-		"object"
-	],
-	"properties": {
-		"name": {
-			"type": [
-				"null",
-				"string"
-			]
-		},
-		"period": {
-			"type": [
-				"null",
-				"string"
-			]
-		},
-		"value": {
-			"type": [
-				"null",
-				"integer"
-			]
-		},
-		"context": {
-			"type": [
-				"null",
-				"string"
-			]
-		},
-		"end_time": {
-			"type": [
-				"null",
-				"string"
-			]
-		},
-		"title": {
-			"type": [
-				"null",
-				"string"
-			]
-		},
-		"description": {
-			"type": [
-				"null",
-				"string"
-			]
-		},
-		"id": {
-			"type": [
-				"null",
-				"string"
-			]
-		},
-		"page_id": {
-			"type": [
-				"null",
-				"string"
-			]
-		}
-	}
+  "type": [
+    "null",
+    "object"
+  ],
+  "properties": {
+    "id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "name": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "period": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "title": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "description": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "values": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": [
+          "null",
+          "object"
+        ],
+        "properties": {
+          "value": {
+            "type": [
+              "null",
+              "object"
+            ]
+          },
+          "end_time": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      }
+    }
+  }
 }

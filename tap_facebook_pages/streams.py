@@ -19,7 +19,6 @@ class PagesStream(FacebookPagesStream):
     path = "/{page_id}"
     primary_keys = ["id"]
     replication_key = None
-    # Optionally, you may also use `schema_filepath` in place of `schema`:
     schema_filepath = SCHEMAS_DIR / "pages.json"
 
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
@@ -41,7 +40,6 @@ class PostsStream(FacebookPagesStream):
     path = "/{page_id}/published_posts"
     primary_keys = ["id"]
     replication_key = None
-    # Optionally, you may also use `schema_filepath` in place of `schema`:
     schema_filepath = SCHEMAS_DIR / "posts.json"
     records_jsonpath = "$.data[*]"
 
@@ -53,12 +51,57 @@ class PostsStream(FacebookPagesStream):
         params["fields"] = ",".join(self.schema["properties"].keys())
         return params
 
-    # def __init__(
-    #     self,
-    #     tap: TapBaseClass,
-    #     name: Optional[str] = None,
-    #     schema: Optional[Union[Dict[str, Any], Schema]] = None,
-    #     path: Optional[str] = None,
-    # ) -> None:
-    #     super().__init__(tap, name, schema, path)
-    #     self.access_token = self.exchange_token()
+
+class PageInsightsStream(FacebookPagesStream):
+    """Base class for Page Insights streams"""
+    name = None
+    parent_stream_type = PagesStream
+    path = "/{page_id}/insights"
+    primary_keys = ["id"]
+    replication_key = None
+    schema_filepath = SCHEMAS_DIR / "page_insights.json"
+    records_jsonpath = "$.data[*]"
+    metrics: List[str] = None
+
+    def get_url_params(
+        self, context: Optional[dict], next_page_token: Optional[Any]
+    ) -> Dict[str, Any]:
+        params = super().get_url_params(context, next_page_token)
+        params["access_token"] = self.page_access_tokens[context["page_id"]]
+        params["metric"] = ",".join(self.metrics)
+        # params.update({"metric": ",".join(self.metrics)})
+        return params
+
+    def post_process(self, row: dict, context: Optional[dict]) -> dict:
+        """As needed, append or transform raw data to match expected structure."""
+        for val in row["values"]:
+            if isinstance(val["value"], int):
+                val["value"] = {"total": val["value"]}
+        return row
+
+
+class PageInsightsVideoViewsStream(PageInsightsStream):
+    """Define custom stream."""
+    name = "page_insights_video_views"
+    metrics = [
+        "page_video_views",
+        "page_video_views_paid",
+        "page_video_views_organic",
+        "page_video_views_by_paid_non_paid",
+        "page_video_views_autoplayed",
+        "page_video_views_click_to_play",
+        "page_video_views_unique",
+        "page_video_repeat_views",
+        "page_video_complete_views_30s",
+        "page_video_complete_views_30s_paid",
+        "page_video_complete_views_30s_organic",
+        "page_video_complete_views_30s_autoplayed",
+        "page_video_complete_views_30s_click_to_play",
+        "page_video_complete_views_30s_unique",
+        "page_video_complete_views_30s_repeat_views",
+        "post_video_complete_views_30s_autoplayed",
+        "post_video_complete_views_30s_clicked_to_play",
+        "post_video_complete_views_30s_organic",
+        "post_video_complete_views_30s_paid",
+        "post_video_complete_views_30s_unique",
+    ]

@@ -32,6 +32,7 @@ class FacebookPagesStream(RESTStream):
 
     records_jsonpath = "$[*]"  # Or override `parse_response`.
     next_page_token_jsonpath = "$.paging.cursors.after"  # Or override `get_next_page_token`.
+    page_access_tokens: Dict[str, str] = None
 
     @property
     def partitions(self) -> List[Dict[str, str]]:
@@ -127,11 +128,6 @@ class FacebookPagesStream(RESTStream):
         """Parse the response and return an iterator of result records."""
         # TODO: Parse response body and return a set of records.
         yield from extract_jsonpath(self.records_jsonpath, input=response.json())
-
-    def post_process(self, row: dict, context: Optional[dict]) -> dict:
-        """As needed, append or transform raw data to match expected structure."""
-        # TODO: Delete this method if not needed.
-        return row
 
     def validate_response(self, response: requests.Response) -> None:
         if 400 <= response.status_code <= 500:

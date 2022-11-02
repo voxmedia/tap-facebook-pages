@@ -9,12 +9,14 @@ from singer_sdk import typing as th  # JSON schema typing helpers
 # TODO: Import your custom stream types here:
 from tap_facebook_pages.streams import (
     PagesStream,
+    PageInsightsVideoViewsStream,
     PostsStream,
 )
 
 
 STREAM_TYPES = [
     PagesStream,
+    PageInsightsVideoViewsStream,
     PostsStream,
 ]
 
