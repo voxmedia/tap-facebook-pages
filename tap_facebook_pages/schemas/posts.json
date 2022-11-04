@@ -223,6 +223,112 @@
 				"null",
 				"string"
 			]
+		},
+		"attachments": {
+			"type": [
+				"null",
+				"object"
+			],
+			"properties": {
+				"data": {
+					"type": [
+						"null",
+						"array"
+					],
+					"items": {
+						"type": [
+							"null",
+							"object"
+						],
+						"properties": {
+							"description": {
+								"type": [
+									"null",
+									"string"
+								]
+							},
+							"title": {
+								"type": [
+									"null",
+									"string"
+								]
+							},
+							"media": {
+								"type": [
+									"null",
+									"object"
+								],
+								"properties": {
+									"image": {
+										"type": [
+											"null",
+											"object"
+										],
+										"properties": {
+											"height": {
+												"type": [
+													"null",
+													"integer"
+												]
+											},
+											"src": {
+												"type": [
+													"null",
+													"string"
+												]
+											},
+											"width": {
+												"type": [
+													"null",
+													"integer"
+												]
+											}
+										}
+									},
+									"source": {
+										"type": [
+											"null",
+											"string"
+										]
+									}
+								}
+							},
+							"target": {
+								"type": [
+									"null",
+									"object"
+								],
+								"properties": {
+									"id": {
+										"type": [
+											"null",
+											"string"
+										]
+									},
+									"url": {
+										"type": [
+											"null",
+											"string"
+										]
+									}
+								}
+							},
+							"type": {
+								"type": [
+									"null",
+									"string"
+								]
+							},
+							"url": {
+								"type": [
+									"null",
+									"string"
+								]
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 }

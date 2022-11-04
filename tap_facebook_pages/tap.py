@@ -9,14 +9,12 @@ from singer_sdk import typing as th  # JSON schema typing helpers
 # TODO: Import your custom stream types here:
 from tap_facebook_pages.streams import (
     PagesStream,
-    PageInsightsVideoViewsStream,
     PostsStream,
 )
 
 
 STREAM_TYPES = [
     PagesStream,
-    PageInsightsVideoViewsStream,
     PostsStream,
 ]
 
@@ -31,7 +29,7 @@ class TapFacebookPages(Tap):
     """FacebookPages tap class."""
     name = "tap-facebook-pages"
 
-    # TODO: Update this section with the actual config values you expect:
+    # TODO: Configurable threshold for post age cutoff when fetching insights
     config_jsonschema = th.PropertiesList(
         th.Property(
             "user_token",

@@ -121,7 +121,8 @@ class FacebookPagesStream(RESTStream):
         next_page_token: Optional[Any] = None
     ) -> requests.PreparedRequest:
         req = super().prepare_request(context, next_page_token)
-        self.logger.info(re.sub("access_token=[a-zA-Z0-9]+&", "access_token=*****&", urllib.parse.unquote(req.url)))
+        self.logger.info(urllib.parse.unquote(req.url))
+        # self.logger.info(re.sub("access_token=[a-zA-Z0-9]+&", "access_token=*****&", urllib.parse.unquote(req.url)))
         return req
 
     def parse_response(self, response: requests.Response) -> Iterable[dict]:
@@ -131,11 +132,26 @@ class FacebookPagesStream(RESTStream):
 
     def validate_response(self, response: requests.Response) -> None:
         if 400 <= response.status_code <= 500:
-            self.logger.warning(f"ERROR RESPONSE: {response.json()}")
+            # self.logger.warning(f"ERROR RESPONSE: {response.json()}")
             msg = (
                 f"{response.status_code} Client Error: "
                 f"{response.reason} for path: {self.path}: "
                 f"{response.json().get('error', {}).get('message')}"
             )
+            # The Graph API occasionally complains that we need to use a page access token
+            # even though we should already be using one. A retry appears to resolve this.
+            if (
+                response.status_code == 400
+                and response.json().get("error", {}).get("message") ==
+                "(#190) This method must be called with a Page Access Token"
+            ):
+                raise RetriableAPIError(msg)
+            # FB will occasionally throw a 500 with this vague message - might as well retry :shrug:
+            if (
+                response.status_code == 500
+                and response.json().get("error", {}).get("message") ==
+                "An unknown error occurred"
+            ):
+                raise RetriableAPIError(msg)
             raise FatalAPIError(msg)
         super().validate_response(response)
