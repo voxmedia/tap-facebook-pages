@@ -59,6 +59,24 @@ class PostsStream(FacebookPagesStream):
         return params
 
 
+class VideoStream(FacebookPagesStream):
+    name = "videos"
+    parent_stream_type = PagesStream
+    path = "/{page_id}/videos"
+    primary_keys = ["id"]
+    replication_key = None
+    schema_filepath = SCHEMAS_DIR / "videos.json"
+    records_jsonpath = "$.data[*]"
+
+    def get_url_params(
+        self, context: Optional[dict], next_page_token: Optional[Any]
+    ) -> Dict[str, Any]:
+        params = super().get_url_params(context, next_page_token)
+        params["access_token"] = self.page_access_tokens[context["page_id"]]
+        params["fields"] = ",".join(self.schema["properties"].keys())
+        return params
+
+
 # class PostAttachmentsStream(FacebookPagesStream):
 #     name = "post_attachments"
 #     parent_stream_type = PostsStream
@@ -198,6 +216,7 @@ class PagePostsInsightsStream(PageInsightsStream):
 
 class PagePostEngagementInsightsStream(PostInsightsStream):
     """https://developers.facebook.com/docs/graph-api/reference/insights#page-post-engagement"""
+    name = "page_post_engagement_insights"
     metrics = [
         "post_engaged_users",
         "post_negative_feedback",
@@ -209,6 +228,29 @@ class PagePostEngagementInsightsStream(PostInsightsStream):
         "post_clicks_unique",
         "post_clicks_by_type",
         "post_clicks_by_type_unique",
+    ]
+
+
+class PagePostImpressionsInsightsStream(PostInsightsStream):
+    """https://developers.facebook.com/docs/graph-api/reference/insights#page-post-impressions"""
+    name = "page_post_impressions_insights"
+    metrics = [
+        "post_impressions",
+        "post_impressions_unique",
+        "post_impressions_paid",
+        "post_impressions_paid_unique",
+        "post_impressions_fan",
+        "post_impressions_fan_unique",
+        "post_impressions_fan_paid",
+        "post_impressions_fan_paid_unique",
+        "post_impressions_organic",
+        "post_impressions_organic_unique",
+        "post_impressions_viral",
+        "post_impressions_viral_unique",
+        "post_impressions_nonviral",
+        "post_impressions_nonviral_unique",
+        "post_impressions_by_story_type",
+        "post_impressions_by_story_type_unique",
     ]
 
 

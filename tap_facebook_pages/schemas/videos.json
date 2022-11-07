@@ -1,0 +1,276 @@
+{
+  "type": [
+    "null",
+    "object"
+  ],
+  "properties": {
+    "id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "created_time": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "title": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "description": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "ad_breaks": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": [
+          "null",
+          "integer"
+        ]
+      }
+    },
+    "content_category": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "content_tags": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": [
+          "null",
+          "string"
+        ]
+      }
+    },
+    "custom_labels": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": [
+          "null",
+          "string"
+        ]
+      }
+    },
+    "embeddable": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "embed_html": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "from": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "id": {
+          "type": [
+            "null",
+            "integer"
+          ]
+        },
+        "name": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      }
+    },
+    "icon": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "is_crosspost_video": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "is_crossposting_eligible": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "is_episode": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "is_instagram_eligible": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "is_reference_only": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "length": {
+      "type": [
+        "null",
+        "number"
+      ]
+    },
+    "live_status": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "post_views": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "published": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "scheduled_publish_time": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "source": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "status": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "video_status": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "uploading_phase": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "properties": {
+            "status": {
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          }
+        },
+        "processing_phase": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "properties": {
+            "status": {
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          }
+        },
+        "publishing_phase": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "properties": {
+            "status": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "publish_status": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "publish_time": {
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "universal_video_id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "updated_time": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "views": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "permalink_url": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "picture": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  }
+}
