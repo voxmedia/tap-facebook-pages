@@ -58,30 +58,6 @@ class FacebookPagesStream(RESTStream):
         # headers["Private-Token"] = self.config.get("auth_token")
         return headers
 
-    # @property
-    # def page_access_tokens(self) -> Dict[str, str]:
-    #     """Return a dictionary of page access tokens."""
-    #     return {page_id: self.exchange_token(page_id) for page_id in self.config["page_ids"]}
-
-    # def exchange_token(self, page_id: str):
-    #     url = f"{self.url_base}/{page_id}"
-    #     data = {
-    #         "fields": "access_token,name",
-    #         "access_token": self.config["user_token"]
-    #     }
-    #
-    #     self.logger.info("Exchanging access token for page with id=" + page_id)
-    #     response = session.get(url=url, params=data)
-    #     response_data = json.loads(response.text)
-    #     if response.status_code != 200:
-    #         error_message = "Failed exchanging token: " + response_data["error"]["message"]
-    #         self.logger.error(error_message)
-    #         raise RuntimeError(
-    #             error_message
-    #         )
-    #     self.logger.info("Successfully exchanged access token for page with id=" + page_id)
-    #     return response_data['access_token']
-
     def get_next_page_token(
         self, response: requests.Response, previous_token: Optional[Any]
     ) -> Optional[Any]:
@@ -121,8 +97,8 @@ class FacebookPagesStream(RESTStream):
         next_page_token: Optional[Any] = None
     ) -> requests.PreparedRequest:
         req = super().prepare_request(context, next_page_token)
-        self.logger.info(urllib.parse.unquote(req.url))
-        # self.logger.info(re.sub("access_token=[a-zA-Z0-9]+&", "access_token=*****&", urllib.parse.unquote(req.url)))
+        # self.logger.info(urllib.parse.unquote(req.url))
+        self.logger.info(re.sub("access_token=[a-zA-Z0-9]+&", "access_token=*****&", urllib.parse.unquote(req.url)))
         return req
 
     def parse_response(self, response: requests.Response) -> Iterable[dict]:
@@ -132,12 +108,20 @@ class FacebookPagesStream(RESTStream):
 
     def validate_response(self, response: requests.Response) -> None:
         if 400 <= response.status_code <= 500:
-            # self.logger.warning(f"ERROR RESPONSE: {response.json()}")
             msg = (
                 f"{response.status_code} Client Error: "
                 f"{response.reason} for path: {self.path}: "
                 f"{response.json().get('error', {}).get('message')}"
             )
+            # If a post is not found when attempting to fetch insights
+            # this should not stop the entire sync. Log and move on!
+            not_exists_pattern = re.compile("^.*Object with ID '[0-9]+_[0-9]+' does not exist.*$")
+            if (
+                response.status_code == 400
+                and not_exists_pattern.match(response.json().get('error', {}).get('message'))
+            ):
+                self.logger.warning(f"Skipping record because object not found: {msg}")
+                return
             # The Graph API occasionally complains that we need to use a page access token
             # even though we should already be using one. A retry appears to resolve this.
             if (

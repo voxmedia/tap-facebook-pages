@@ -1,11 +1,10 @@
 """Stream type classes for tap-facebook-pages."""
 
+import copy
 from pathlib import Path
 from typing import Any, Dict, Optional, Union, List, Iterable
 
-# from singer_sdk import typing as th  # JSON Schema typing helpers
-# from singer_sdk._singerlib import Schema
-# from singer_sdk.plugin_base import PluginBase as TapBaseClass
+from google.cloud import bigquery
 
 from tap_facebook_pages.client import FacebookPagesStream
 
@@ -59,6 +58,43 @@ class PostsStream(FacebookPagesStream):
         return params
 
 
+class AllPostsStream(FacebookPagesStream):
+    name = "all_posts"
+    parent_stream_type = PagesStream
+    # path = "/{page_id}/published_posts"
+    primary_keys = ["id"]
+    replication_key = None
+    schema_filepath = SCHEMAS_DIR / "posts.json"
+    records_jsonpath = "$"
+
+    def request_records(self, context: Optional[dict]) -> Iterable[dict]:
+        # TODO: take table name from config
+        posts_query = """
+            select distinct post_id as id
+            from `g9-data-warehouse-prod.facebook_posts.most_recent`
+            where 
+                split(post_id, '_')[safe_offset(0)] = @page_id
+                and created_time >= @insights_start_date
+        """
+        self.logger.info(f"Executing query: {posts_query}")
+        bigquery_client = bigquery.Client()
+        query_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("page_id", "STRING", context["page_id"]),
+                bigquery.ScalarQueryParameter("insights_start_date", "TIMESTAMP", '2021-11-07'),  # TODO: accept config
+            ]
+        )
+        for row in bigquery_client.query(posts_query, job_config=query_config).result():
+            yield dict(row)
+
+    def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
+        """Return a context dictionary for child streams."""
+        return {
+            "page_id": context["page_id"],
+            "post_id": record["id"],
+        }
+
+
 class VideoStream(FacebookPagesStream):
     name = "videos"
     parent_stream_type = PagesStream
@@ -87,16 +123,39 @@ class VideoStream(FacebookPagesStream):
 #     records_jsonpath = "$.data[*]"
 
 
-class PageInsightsStream(FacebookPagesStream):
-    """Base class for Page Insights streams"""
+class InsightsStream(FacebookPagesStream):
+    """
+    Base class for all Insights streams. They all return InsightsResult objects as described
+    [here](https://developers.facebook.com/docs/graph-api/reference/insights-result/)
+    """
     name = None
+    primary_keys = ["id"]
+    replication_key = None
+    schema_filepath = SCHEMAS_DIR / "insights.json"
+    records_jsonpath = "$.data[*]"
+    metrics: List[str] = None
+
+    def post_process(self, row: dict, context: Optional[dict]) -> dict:
+        # each `val` in an InsightsValue object
+        # https://developers.facebook.com/docs/graph-api/reference/insights-value/
+        for val in row["values"]:
+            if isinstance(val["value"], int):
+                val["value"] = [{"name": "total", "value": val["value"]}]
+            # this gives us a well-defined schema for each val["value"]
+            # otherwise we could have arbitrary keys, some with names like `0` that
+            # several destinations (like BigQuery) would reject
+            elif isinstance(val["value"], dict):
+                if val["value"] == {}:
+                    val["value"] = None
+                else:
+                    val["value"] = [{"name": k, "value": v} for k, v in val["value"].items()]
+        return row
+
+
+class PageInsightsStream(InsightsStream):
+    """Base class for Page Insights streams"""
     parent_stream_type = PagesStream
     path = "/{page_id}/insights"
-    primary_keys = ["id"]
-    replication_key = None
-    schema_filepath = SCHEMAS_DIR / "page_insights.json"
-    records_jsonpath = "$.data[*]"
-    metrics: List[str] = None
 
     def get_url_params(
         self, context: Optional[dict], next_page_token: Optional[Any]
@@ -106,24 +165,11 @@ class PageInsightsStream(FacebookPagesStream):
         params["metric"] = ",".join(self.metrics)
         return params
 
-    def post_process(self, row: dict, context: Optional[dict]) -> dict:
-        """As needed, append or transform raw data to match expected structure."""
-        for val in row["values"]:
-            if isinstance(val["value"], int):
-                val["value"] = {"total": val["value"]}
-        return row
 
-
-class PostInsightsStream(FacebookPagesStream):
+class PostInsightsStream(InsightsStream):
     """Base class for Page Insights streams"""
-    name = None
-    parent_stream_type = PostsStream
+    parent_stream_type = AllPostsStream
     path = "/{post_id}/insights"
-    primary_keys = ["id"]
-    replication_key = None
-    schema_filepath = SCHEMAS_DIR / "page_insights.json"  # TODO: update
-    records_jsonpath = "$.data[*]"
-    metrics: List[str] = None
 
     def get_url_params(
         self, context: Optional[dict], next_page_token: Optional[Any]
@@ -132,13 +178,6 @@ class PostInsightsStream(FacebookPagesStream):
         params["access_token"] = self.page_access_tokens[context["page_id"]]
         params["metric"] = ",".join(self.metrics)
         return params
-
-    def post_process(self, row: dict, context: Optional[dict]) -> dict:
-        """As needed, append or transform raw data to match expected structure."""
-        for val in row["values"]:
-            if isinstance(val["value"], int):
-                val["value"] = {"total": val["value"]}
-        return row
 
 
 class PageEngagementInsightsStream(PageInsightsStream):

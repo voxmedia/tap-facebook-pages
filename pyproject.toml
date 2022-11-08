@@ -13,6 +13,7 @@ license = "Apache 2.0"
 python = "<3.11,>=3.7.1"
 requests = "^2.25.1"
 singer-sdk = "^0.13.0"
+google-cloud-bigquery = "^3.3.6"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"

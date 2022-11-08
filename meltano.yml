@@ -29,3 +29,11 @@ plugins:
   - name: target-jsonl
     variant: andyh1203
     pip_url: target-jsonl
+  - name: target-bigquery
+    variant: adswerve
+#    pip_url: git+https://github.com/adswerve/target-bigquery.git@0.12.1
+    config:
+      add_metadata_columns: true
+      table_prefix: src_
+#      table_config: load/target-tables-config.json
+      merge_state_messages: false
