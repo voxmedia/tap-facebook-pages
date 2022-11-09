@@ -51,9 +51,11 @@ class TapFacebookPages(Tap):
             description="Page IDs of Facebook pages for which to fetch data."
         ),
         th.Property(
-            "start_date",
-            th.DateTimeType,
-            description="The earliest record date to sync."
+            "insights_lookback_months",
+            th.IntegerType,
+            description="The lookback period for fetching insights data. Defaults to 12 months, meaning that we fetch "
+                        "insights only for the last 12 months and for posts published within the last 12 months.",
+            default=12,
         ),
     ).to_dict()
 

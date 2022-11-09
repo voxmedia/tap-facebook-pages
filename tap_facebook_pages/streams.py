@@ -1,6 +1,6 @@
 """Stream type classes for tap-facebook-pages."""
 
-import copy
+import requests
 from pathlib import Path
 from typing import Any, Dict, Optional, Union, List, Iterable
 
@@ -70,28 +70,32 @@ class AllPostsStream(FacebookPagesStream):
     def request_records(self, context: Optional[dict]) -> Iterable[dict]:
         # TODO: take table name from config
         posts_query = """
-            select distinct post_id as id
+            select distinct post_id as id, created_time
             from `g9-data-warehouse-prod.facebook_posts.most_recent`
             where 
                 split(post_id, '_')[safe_offset(0)] = @page_id
-                and created_time >= @insights_start_date
+                and date(created_time) >= date_sub(current_date, interval @insights_lookback_months month)
         """
         self.logger.info(f"Executing query: {posts_query}")
         bigquery_client = bigquery.Client()
         query_config = bigquery.QueryJobConfig(
             query_parameters=[
                 bigquery.ScalarQueryParameter("page_id", "STRING", context["page_id"]),
-                bigquery.ScalarQueryParameter("insights_start_date", "TIMESTAMP", '2021-11-07'),  # TODO: accept config
+                bigquery.ScalarQueryParameter(
+                    "insights_lookback_months",
+                    "INTEGER",
+                    self.config.get("insights_lookback_months"),
+                ),
             ]
         )
         for row in bigquery_client.query(posts_query, job_config=query_config).result():
             yield dict(row)
 
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
-        """Return a context dictionary for child streams."""
         return {
             "page_id": context["page_id"],
             "post_id": record["id"],
+            "created_time": record["created_time"].strftime("%Y-%m-%d"),
         }
 
 
@@ -135,6 +139,17 @@ class InsightsStream(FacebookPagesStream):
     records_jsonpath = "$.data[*]"
     metrics: List[str] = None
 
+    # def get_url_params(
+    #     self, context: Optional[dict], next_page_token: Optional[Any]
+    # ) -> Dict[str, Any]:
+    #     params = super().get_url_params(context, next_page_token)
+    #     params["since"] = self.get_starting_timestamp(context)
+
+    def get_next_page_token(
+        self, response: requests.Response, previous_token: Optional[Any]
+    ) -> Optional[Any]:
+        return None
+
     def post_process(self, row: dict, context: Optional[dict]) -> dict:
         # each `val` in an InsightsValue object
         # https://developers.facebook.com/docs/graph-api/reference/insights-value/
@@ -175,6 +190,9 @@ class PostInsightsStream(InsightsStream):
         self, context: Optional[dict], next_page_token: Optional[Any]
     ) -> Dict[str, Any]:
         params = super().get_url_params(context, next_page_token)
+        # if no state is found, get all data since the post was published
+        # this is guaranteed to be in the last X months, where X is the configured `insights_lookback_months`
+        params["since"] = self.get_starting_timestamp(context) or context["created_time"]
         params["access_token"] = self.page_access_tokens[context["page_id"]]
         params["metric"] = ",".join(self.metrics)
         return params

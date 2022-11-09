@@ -88,7 +88,6 @@ class FacebookPagesStream(RESTStream):
         if self.replication_key:
             params["sort"] = "asc"
             params["order_by"] = self.replication_key
-        self.logger.warning(f"PARAMS: {params}")
         return params
 
     def prepare_request(
