@@ -32,7 +32,8 @@
 			"type": [
 				"null",
 				"string"
-			]
+			],
+			"format": "date-time"
 		},
 		"title": {
 			"type": [

@@ -134,8 +134,8 @@ class InsightsStream(FacebookPagesStream):
     """
     name = None
     primary_keys = ["id"]
-    replication_key = None
-    schema_filepath = SCHEMAS_DIR / "insights.json"
+    replication_key = "end_time"
+    schema_filepath = SCHEMAS_DIR / "post_insights.json"
     records_jsonpath = "$.data[*]"
     metrics: List[str] = None
 
@@ -150,21 +150,58 @@ class InsightsStream(FacebookPagesStream):
     ) -> Optional[Any]:
         return None
 
-    def post_process(self, row: dict, context: Optional[dict]) -> dict:
-        # each `val` in an InsightsValue object
-        # https://developers.facebook.com/docs/graph-api/reference/insights-value/
-        for val in row["values"]:
-            if isinstance(val["value"], int):
-                val["value"] = [{"name": "total", "value": val["value"]}]
-            # this gives us a well-defined schema for each val["value"]
-            # otherwise we could have arbitrary keys, some with names like `0` that
-            # several destinations (like BigQuery) would reject
-            elif isinstance(val["value"], dict):
-                if val["value"] == {}:
-                    val["value"] = None
-                else:
-                    val["value"] = [{"name": k, "value": v} for k, v in val["value"].items()]
-        return row
+    def parse_response(self, response: requests.Response) -> Iterable[dict]:
+        resp_json = response.json()
+        if "data" not in resp_json:
+            self.logger.warning(f"No data found: {resp_json}")
+            return
+        for row in resp_json["data"]:
+            base_item = {
+                "name": row["name"],
+                "period": row["period"],
+                "title": row["title"],
+                "id": row["id"],
+            }
+            if "values" in row:
+                for values in row["values"]:
+                    if isinstance(values["value"], dict):
+                        for key, value in values["value"].items():
+                            if isinstance(value, dict):
+                                for k, v in value.items():
+                                    item = {
+                                        "context": f"{key} > {k}",
+                                        "value": float(v),
+                                        "end_time": values.get("end_time")
+                                    }
+                                    item.update(base_item)
+                                    yield item
+                            else:
+                                item = {
+                                    "context": key,
+                                    "value": float(value),
+                                    "end_time": values.get("end_time")
+                                }
+                                item.update(base_item)
+                                yield item
+                    else:
+                        values.update(base_item)
+                        yield values
+
+    # def post_process(self, row: dict, context: Optional[dict]) -> dict:
+    #     # each `val` in an InsightsValue object
+    #     # https://developers.facebook.com/docs/graph-api/reference/insights-value/
+    #     for val in row["values"]:
+    #         if isinstance(val["value"], int):
+    #             val["value"] = [{"name": "total", "value": val["value"]}]
+    #         # this gives us a well-defined schema for each val["value"]
+    #         # otherwise we could have arbitrary keys, some with names like `0` that
+    #         # several destinations (like BigQuery) would reject
+    #         elif isinstance(val["value"], dict):
+    #             if val["value"] == {}:
+    #                 val["value"] = None
+    #             else:
+    #                 val["value"] = [{"name": k, "value": v} for k, v in val["value"].items()]
+    #     return row
 
 
 class PageInsightsStream(InsightsStream):
@@ -190,6 +227,7 @@ class PostInsightsStream(InsightsStream):
         self, context: Optional[dict], next_page_token: Optional[Any]
     ) -> Dict[str, Any]:
         params = super().get_url_params(context, next_page_token)
+        params["period"] = "day"  # TODO: might need separate day and lifetime base classes
         # if no state is found, get all data since the post was published
         # this is guaranteed to be in the last X months, where X is the configured `insights_lookback_months`
         params["since"] = self.get_starting_timestamp(context) or context["created_time"]

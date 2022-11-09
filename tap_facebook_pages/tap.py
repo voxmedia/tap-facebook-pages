@@ -83,6 +83,7 @@ class TapFacebookPages(Tap):
         # This feels like the cleanest way to ensure we only exchange tokens once and that
         # all streams have access to the page tokens. Overriding __init__() in the base
         # stream class could work but feels riskier.
+        # TODO: do this just for the base class?
         for stream_class in STREAM_TYPES:
             stream_class.page_access_tokens = {
                 page_id: self.exchange_token(page_id) for page_id in self.config["page_ids"]
