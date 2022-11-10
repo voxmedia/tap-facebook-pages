@@ -4,6 +4,7 @@ import requests
 from pathlib import Path
 from typing import Any, Dict, Optional, Union, List, Iterable
 
+import pendulum
 from google.cloud import bigquery
 
 from tap_facebook_pages.client import FacebookPagesStream
@@ -171,7 +172,7 @@ class InsightsStream(FacebookPagesStream):
                                     item = {
                                         "context": f"{key} > {k}",
                                         "value": float(v),
-                                        "end_time": values.get("end_time")
+                                        "end_time": pendulum.parse(values.get("end_time")).to_datetime_string()
                                     }
                                     item.update(base_item)
                                     yield item
@@ -179,11 +180,13 @@ class InsightsStream(FacebookPagesStream):
                                 item = {
                                     "context": key,
                                     "value": float(value),
-                                    "end_time": values.get("end_time")
+                                    "end_time": pendulum.parse(values.get("end_time")).to_datetime_string()
                                 }
                                 item.update(base_item)
                                 yield item
                     else:
+                        if values.get("end_time"):
+                            values["end_time"] = pendulum.parse(values["end_time"]).to_datetime_string()
                         values.update(base_item)
                         yield values
 
@@ -222,6 +225,8 @@ class PostInsightsStream(InsightsStream):
     """Base class for Page Insights streams"""
     parent_stream_type = AllPostsStream
     path = "/{post_id}/insights"
+    # too many posts to store state for each one
+    state_partitioning_keys = ["page_id"]
 
     def get_url_params(
         self, context: Optional[dict], next_page_token: Optional[Any]
