@@ -11,15 +11,17 @@ from tap_facebook_pages.streams import (
     AllPostsStream,
     PagesStream,
     PageVideoPostsInsightsStream,
-    PostsStream,
-    VideoStream,
+    PageVideoPostsRecentInsightsStream,
+    # PostsStream,
+    # VideoStream,
 )
 
-
+# TODO: post_ids in historical insights are null
 STREAM_TYPES = [
     AllPostsStream,
     PagesStream,
     PageVideoPostsInsightsStream,
+    PageVideoPostsRecentInsightsStream,
     # PostsStream,
     # VideoStream,
 ]
@@ -55,7 +57,7 @@ class TapFacebookPages(Tap):
             th.IntegerType,
             description="The lookback period for fetching insights data. Defaults to 12 months, meaning that we fetch "
                         "insights only for the last 12 months and for posts published within the last 12 months.",
-            default=12,
+            default=24,
         ),
     ).to_dict()
 

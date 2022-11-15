@@ -207,6 +207,59 @@ class InsightsStream(FacebookPagesStream):
     #     return row
 
 
+class RecentPostInsightsStream(FacebookPagesStream):
+    """
+    TODO: document
+    """
+    parent_stream_type = PagesStream
+    path = "/{page_id}/published_posts"
+    primary_keys = ["id"]
+    replication_key = None
+    schema_filepath = SCHEMAS_DIR / "post_insights.json"
+    records_jsonpath = "$.data[*]"
+    metrics: List[str] = None
+
+    def get_url_params(
+        self, context: Optional[dict], next_page_token: Optional[Any]
+    ) -> Dict[str, Any]:
+        params = super().get_url_params(context, next_page_token)
+        params["access_token"] = self.page_access_tokens[context["page_id"]]
+        params["fields"] = f"id,created_time,insights.metric({','.join(self.metrics)})"
+        return params
+
+    def parse_response(self, response: requests.Response) -> Iterable[dict]:
+        resp_json = response.json()
+        if "data" not in resp_json:
+            self.logger.warning(f"No data found: {resp_json}")
+            return
+        for row in resp_json["data"]:
+            for insights in row["insights"]["data"]:
+                base_item = {
+                    "post_id": row["id"],
+                    "post_created_time": row["created_time"],
+                    "name": insights["name"],
+                    "period": insights["period"],
+                    "title": insights["title"],
+                    "description": insights["description"],
+                    "id": insights["id"],
+                }
+                if "values" in insights:
+                    for values in insights["values"]:
+                        if isinstance(values["value"], dict):
+                            for key, value in values["value"].items():
+                                item = {
+                                    "context": key,
+                                    "value": value,
+                                }
+                                item.update(base_item)
+                                yield item
+                        else:
+                            values.update(base_item)
+                            if "end_time" in values:
+                                values["end_time"] = pendulum.parse(values["end_time"]).to_datetime_string()
+                            yield values
+
+
 class PageInsightsStream(InsightsStream):
     """Base class for Page Insights streams"""
     parent_stream_type = PagesStream
@@ -235,7 +288,9 @@ class PostInsightsStream(InsightsStream):
         params["period"] = "day"  # TODO: might need separate day and lifetime base classes
         # if no state is found, get all data since the post was published
         # this is guaranteed to be in the last X months, where X is the configured `insights_lookback_months`
-        params["since"] = self.get_starting_timestamp(context) or context["created_time"]
+        params["since"] = pendulum.instance(
+            self.get_starting_timestamp(context) or context["created_time"]
+        ).to_date_string()
         params["access_token"] = self.page_access_tokens[context["page_id"]]
         params["metric"] = ",".join(self.metrics)
         return params
@@ -384,6 +439,42 @@ class PageVideoViewsInsightsStream(PageInsightsStream):
 class PageVideoPostsInsightsStream(PostInsightsStream):
     """https://developers.facebook.com/docs/graph-api/reference/insights#page-video-posts"""
     name = "page_video_post_insights"
+    metrics = [
+        "post_video_avg_time_watched",
+        "post_video_complete_views_organic",
+        "post_video_complete_views_organic_unique",
+        "post_video_complete_views_paid",
+        "post_video_complete_views_paid_unique",
+        "post_video_retention_graph",
+        "post_video_retention_graph_clicked_to_play",
+        "post_video_retention_graph_autoplayed",
+        "post_video_views_organic",
+        "post_video_views_organic_unique",
+        "post_video_views_paid",
+        "post_video_views_paid_unique",
+        "post_video_length",
+        "post_video_views",
+        "post_video_views_unique",
+        "post_video_views_autoplayed",
+        "post_video_views_clicked_to_play",
+        "post_video_views_15s",
+        "post_video_views_60s_excludes_shorter",
+        "post_video_views_10s",
+        "post_video_views_10s_unique",
+        "post_video_views_10s_autoplayed",
+        "post_video_views_10s_clicked_to_play",
+        "post_video_views_10s_organic",
+        "post_video_views_10s_paid",
+        "post_video_views_10s_sound_on",
+        "post_video_views_sound_on",
+        "post_video_view_time",
+        "post_video_view_time_organic",
+    ]
+
+
+class PageVideoPostsRecentInsightsStream(RecentPostInsightsStream):
+    """https://developers.facebook.com/docs/graph-api/reference/insights#page-video-posts"""
+    name = "page_video_post_recent_insights"
     metrics = [
         "post_video_avg_time_watched",
         "post_video_complete_views_organic",

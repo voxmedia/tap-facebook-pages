@@ -106,6 +106,8 @@ class FacebookPagesStream(RESTStream):
         yield from extract_jsonpath(self.records_jsonpath, input=response.json())
 
     def validate_response(self, response: requests.Response) -> None:
+        # TODO: Handle 100 response code
+        # TODO: Handle "reduce data you're asking for" for videos stream
         if 400 <= response.status_code <= 500:
             msg = (
                 f"{response.status_code} Client Error: "
