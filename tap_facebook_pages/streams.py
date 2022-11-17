@@ -269,6 +269,12 @@ class PageInsightsStream(InsightsStream):
         self, context: Optional[dict], next_page_token: Optional[Any]
     ) -> Dict[str, Any]:
         params = super().get_url_params(context, next_page_token)
+        params["period"] = "day"  # TODO: might need separate day and lifetime base classes
+        # if no state is found, get all data since the post was published
+        # this is guaranteed to be in the last X months, where X is the configured `insights_lookback_months`
+        # TODO: should this be incremental?
+        # `since` date isn't included in the range so subtract 1 day
+        params["since"] = pendulum.parse(self.config["start_date"]).subtract(days=1).to_date_string()
         params["access_token"] = self.page_access_tokens[context["page_id"]]
         params["metric"] = ",".join(self.metrics)
         return params
@@ -290,7 +296,7 @@ class PostInsightsStream(InsightsStream):
         # this is guaranteed to be in the last X months, where X is the configured `insights_lookback_months`
         params["since"] = pendulum.instance(
             self.get_starting_timestamp(context) or context["created_time"]
-        ).to_date_string()
+        ).subtract(days=1).to_date_string()
         params["access_token"] = self.page_access_tokens[context["page_id"]]
         params["metric"] = ",".join(self.metrics)
         return params
@@ -428,11 +434,19 @@ class PageVideoViewsInsightsStream(PageInsightsStream):
         "page_video_complete_views_30s_click_to_play",
         "page_video_complete_views_30s_unique",
         "page_video_complete_views_30s_repeat_views",
-        "post_video_complete_views_30s_autoplayed",
-        "post_video_complete_views_30s_clicked_to_play",
-        "post_video_complete_views_30s_organic",
-        "post_video_complete_views_30s_paid",
-        "post_video_complete_views_30s_unique",
+        "page_video_views_10s",
+        "page_video_views_10s_paid",
+        "page_video_views_10s_organic",
+        "page_video_views_10s_autoplayed",
+        "page_video_views_10s_click_to_play",
+        "page_video_views_10s_unique",
+        "page_video_views_10s_repeat",
+        "page_video_view_time",
+        # "post_video_complete_views_30s_autoplayed",
+        # "post_video_complete_views_30s_clicked_to_play",
+        # "post_video_complete_views_30s_organic",
+        # "post_video_complete_views_30s_paid",
+        # "post_video_complete_views_30s_unique",
     ]
 
 
@@ -510,11 +524,12 @@ class PageVideoPostsRecentInsightsStream(RecentPostInsightsStream):
 
 class PageVideoAdBreaksInsightsStream(PageInsightsStream):
     """https://developers.facebook.com/docs/graph-api/reference/insights#video-ad-breaks"""
+    name = "page_video_ad_breaks_insights"
     metrics = [
         "page_daily_video_ad_break_ad_impressions_by_crosspost_status",
         "page_daily_video_ad_break_cpm_by_crosspost_status",
         "page_daily_video_ad_break_earnings_by_crosspost_status",
-        "post_video_ad_break_ad_impressions",
-        "post_video_ad_break_earnings",
-        "post_video_ad_break_ad_cpm",
+        # "post_video_ad_break_ad_impressions",
+        # "post_video_ad_break_earnings",
+        # "post_video_ad_break_ad_cpm",
     ]

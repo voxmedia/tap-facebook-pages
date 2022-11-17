@@ -9,20 +9,30 @@ from singer_sdk import typing as th  # JSON schema typing helpers
 # TODO: Import your custom stream types here:
 from tap_facebook_pages.streams import (
     AllPostsStream,
+    PageEngagementInsightsStream,
+    PageImpressionsInsightsStream,
+    PagePostsInsightsStream,
     PagesStream,
+    PageVideoAdBreaksInsightsStream,
+    PageVideoViewsInsightsStream,
     PageVideoPostsInsightsStream,
     PageVideoPostsRecentInsightsStream,
-    # PostsStream,
-    # VideoStream,
+    PostsStream,
+    VideoStream,
 )
 
 # TODO: post_ids in historical insights are null
 STREAM_TYPES = [
     AllPostsStream,
+    PageEngagementInsightsStream,
+    PageImpressionsInsightsStream,
+    PagePostsInsightsStream,
     PagesStream,
+    PageVideoAdBreaksInsightsStream,
+    PageVideoViewsInsightsStream,
     PageVideoPostsInsightsStream,
     PageVideoPostsRecentInsightsStream,
-    # PostsStream,
+    PostsStream,
     # VideoStream,
 ]
 
@@ -51,6 +61,12 @@ class TapFacebookPages(Tap):
             th.ArrayType(th.StringType),
             required=True,
             description="Page IDs of Facebook pages for which to fetch data."
+        ),
+        th.Property(
+            "start_date",
+            th.DateTimeType,
+            description="Start date for fetching historical data.",
+            default="2022-01-01T00:00:00Z",
         ),
         th.Property(
             "insights_lookback_months",

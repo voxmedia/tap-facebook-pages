@@ -4,8 +4,6 @@ project_id: "tap-facebook-pages"
 include_paths:
   - ./*.meltano.yml
 default_environment: test
-#environments:
-#- name: test
 plugins:
   extractors:
   - name: "tap-facebook-pages"
