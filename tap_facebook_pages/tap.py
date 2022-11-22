@@ -15,8 +15,8 @@ from tap_facebook_pages.streams import (
     PagesStream,
     PageVideoAdBreaksInsightsStream,
     PageVideoViewsInsightsStream,
-    PageVideoPostsInsightsStream,
     PageVideoPostsRecentInsightsStream,
+    PostInsightsStream,
     PostsStream,
     VideoStream,
 )
@@ -30,8 +30,8 @@ STREAM_TYPES = [
     PagesStream,
     PageVideoAdBreaksInsightsStream,
     PageVideoViewsInsightsStream,
-    PageVideoPostsInsightsStream,
     PageVideoPostsRecentInsightsStream,
+    PostInsightsStream,
     PostsStream,
     # VideoStream,
 ]

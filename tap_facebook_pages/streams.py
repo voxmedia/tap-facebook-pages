@@ -9,7 +9,7 @@ from google.cloud import bigquery
 
 from tap_facebook_pages.client import FacebookPagesStream
 
-# TODO: Delete this is if not using json files for schema definition
+
 SCHEMAS_DIR = Path(__file__).parent / Path("./schemas")
 
 
@@ -118,16 +118,6 @@ class VideoStream(FacebookPagesStream):
         return params
 
 
-# class PostAttachmentsStream(FacebookPagesStream):
-#     name = "post_attachments"
-#     parent_stream_type = PostsStream
-#     path = "/{post_id}/attachments"
-#     primary_keys = ["id"]
-#     replication_key = None
-#     schema_filepath = SCHEMAS_DIR / "post_attachments.json"
-#     records_jsonpath = "$.data[*]"
-
-
 class InsightsStream(FacebookPagesStream):
     """
     Base class for all Insights streams. They all return InsightsResult objects as described
@@ -136,15 +126,9 @@ class InsightsStream(FacebookPagesStream):
     name = None
     primary_keys = ["id"]
     replication_key = "end_time"
-    schema_filepath = SCHEMAS_DIR / "post_insights.json"
+    schema_filepath = SCHEMAS_DIR / "post_insights.json"  # TODO: different schemas for page/post insights
     records_jsonpath = "$.data[*]"
     metrics: List[str] = None
-
-    # def get_url_params(
-    #     self, context: Optional[dict], next_page_token: Optional[Any]
-    # ) -> Dict[str, Any]:
-    #     params = super().get_url_params(context, next_page_token)
-    #     params["since"] = self.get_starting_timestamp(context)
 
     def get_next_page_token(
         self, response: requests.Response, previous_token: Optional[Any]
@@ -165,6 +149,12 @@ class InsightsStream(FacebookPagesStream):
             }
             if "values" in row:
                 for values in row["values"]:
+                    if values.get("end_time"):  # non lifetime
+                        end_time = pendulum.parse(values.get("end_time")).to_datetime_string()
+                    else:  # lifetime
+                        # setting end_time to some old date lets use still use it at the replication_key
+                        # but without actually updating the state progress marker
+                        end_time = pendulum.today().subtract(years=2).to_datetime_string()
                     if isinstance(values["value"], dict):
                         for key, value in values["value"].items():
                             if isinstance(value, dict):
@@ -172,7 +162,7 @@ class InsightsStream(FacebookPagesStream):
                                     item = {
                                         "context": f"{key} > {k}",
                                         "value": float(v),
-                                        "end_time": pendulum.parse(values.get("end_time")).to_datetime_string()
+                                        "end_time": end_time
                                     }
                                     item.update(base_item)
                                     yield item
@@ -180,31 +170,14 @@ class InsightsStream(FacebookPagesStream):
                                 item = {
                                     "context": key,
                                     "value": float(value),
-                                    "end_time": pendulum.parse(values.get("end_time")).to_datetime_string()
+                                    "end_time": end_time
                                 }
                                 item.update(base_item)
                                 yield item
                     else:
-                        if values.get("end_time"):
-                            values["end_time"] = pendulum.parse(values["end_time"]).to_datetime_string()
+                        values["end_time"] = end_time
                         values.update(base_item)
                         yield values
-
-    # def post_process(self, row: dict, context: Optional[dict]) -> dict:
-    #     # each `val` in an InsightsValue object
-    #     # https://developers.facebook.com/docs/graph-api/reference/insights-value/
-    #     for val in row["values"]:
-    #         if isinstance(val["value"], int):
-    #             val["value"] = [{"name": "total", "value": val["value"]}]
-    #         # this gives us a well-defined schema for each val["value"]
-    #         # otherwise we could have arbitrary keys, some with names like `0` that
-    #         # several destinations (like BigQuery) would reject
-    #         elif isinstance(val["value"], dict):
-    #             if val["value"] == {}:
-    #                 val["value"] = None
-    #             else:
-    #                 val["value"] = [{"name": k, "value": v} for k, v in val["value"].items()]
-    #     return row
 
 
 class RecentPostInsightsStream(FacebookPagesStream):
@@ -269,34 +242,10 @@ class PageInsightsStream(InsightsStream):
         self, context: Optional[dict], next_page_token: Optional[Any]
     ) -> Dict[str, Any]:
         params = super().get_url_params(context, next_page_token)
-        params["period"] = "day"  # TODO: might need separate day and lifetime base classes
-        # if no state is found, get all data since the post was published
-        # this is guaranteed to be in the last X months, where X is the configured `insights_lookback_months`
+        # params["period"] = "day"  # TODO: might need separate day and lifetime base classes
         # TODO: should this be incremental?
         # `since` date isn't included in the range so subtract 1 day
         params["since"] = pendulum.parse(self.config["start_date"]).subtract(days=1).to_date_string()
-        params["access_token"] = self.page_access_tokens[context["page_id"]]
-        params["metric"] = ",".join(self.metrics)
-        return params
-
-
-class PostInsightsStream(InsightsStream):
-    """Base class for Page Insights streams"""
-    parent_stream_type = AllPostsStream
-    path = "/{post_id}/insights"
-    # too many posts to store state for each one
-    state_partitioning_keys = ["page_id"]
-
-    def get_url_params(
-        self, context: Optional[dict], next_page_token: Optional[Any]
-    ) -> Dict[str, Any]:
-        params = super().get_url_params(context, next_page_token)
-        params["period"] = "day"  # TODO: might need separate day and lifetime base classes
-        # if no state is found, get all data since the post was published
-        # this is guaranteed to be in the last X months, where X is the configured `insights_lookback_months`
-        params["since"] = pendulum.instance(
-            self.get_starting_timestamp(context) or context["created_time"]
-        ).subtract(days=1).to_date_string()
         params["access_token"] = self.page_access_tokens[context["page_id"]]
         params["metric"] = ",".join(self.metrics)
         return params
@@ -375,46 +324,6 @@ class PagePostsInsightsStream(PageInsightsStream):
     ]
 
 
-class PagePostEngagementInsightsStream(PostInsightsStream):
-    """https://developers.facebook.com/docs/graph-api/reference/insights#page-post-engagement"""
-    name = "page_post_engagement_insights"
-    metrics = [
-        "post_engaged_users",
-        "post_negative_feedback",
-        "post_negative_feedback_unique",
-        "post_negative_feedback_by_type",
-        "post_negative_feedback_by_type_unique",
-        "post_engaged_fan",
-        "post_clicks",
-        "post_clicks_unique",
-        "post_clicks_by_type",
-        "post_clicks_by_type_unique",
-    ]
-
-
-class PagePostImpressionsInsightsStream(PostInsightsStream):
-    """https://developers.facebook.com/docs/graph-api/reference/insights#page-post-impressions"""
-    name = "page_post_impressions_insights"
-    metrics = [
-        "post_impressions",
-        "post_impressions_unique",
-        "post_impressions_paid",
-        "post_impressions_paid_unique",
-        "post_impressions_fan",
-        "post_impressions_fan_unique",
-        "post_impressions_fan_paid",
-        "post_impressions_fan_paid_unique",
-        "post_impressions_organic",
-        "post_impressions_organic_unique",
-        "post_impressions_viral",
-        "post_impressions_viral_unique",
-        "post_impressions_nonviral",
-        "post_impressions_nonviral_unique",
-        "post_impressions_by_story_type",
-        "post_impressions_by_story_type_unique",
-    ]
-
-
 class PageVideoViewsInsightsStream(PageInsightsStream):
     """https://developers.facebook.com/docs/graph-api/reference/insights#videoviews"""
     name = "page_video_views_insights"
@@ -442,18 +351,58 @@ class PageVideoViewsInsightsStream(PageInsightsStream):
         "page_video_views_10s_unique",
         "page_video_views_10s_repeat",
         "page_video_view_time",
-        # "post_video_complete_views_30s_autoplayed",
-        # "post_video_complete_views_30s_clicked_to_play",
-        # "post_video_complete_views_30s_organic",
-        # "post_video_complete_views_30s_paid",
-        # "post_video_complete_views_30s_unique",
     ]
 
 
-class PageVideoPostsInsightsStream(PostInsightsStream):
-    """https://developers.facebook.com/docs/graph-api/reference/insights#page-video-posts"""
-    name = "page_video_post_insights"
+class PageVideoAdBreaksInsightsStream(PageInsightsStream):
+    """https://developers.facebook.com/docs/graph-api/reference/insights#video-ad-breaks"""
+    name = "page_video_ad_breaks_insights"
     metrics = [
+        "page_daily_video_ad_break_ad_impressions_by_crosspost_status",
+        "page_daily_video_ad_break_cpm_by_crosspost_status",
+        "page_daily_video_ad_break_earnings_by_crosspost_status",
+    ]
+
+
+class PostInsightsStream(InsightsStream):
+    """https://developers.facebook.com/docs/graph-api/reference/insights#page-video-posts"""
+    name = "post_insights"
+    parent_stream_type = AllPostsStream
+    path = "/{post_id}/insights"
+    state_partitioning_keys = ["page_id"]  # too many posts to store state for each one
+    metrics = [  # TODO: allow selection from config, make this dynamic
+        "post_engaged_users",  # day, day_28, week, lifetime, month
+        "post_negative_feedback",
+        "post_negative_feedback_unique",
+        "post_negative_feedback_by_type",
+        "post_negative_feedback_by_type_unique",
+        "post_engaged_fan",
+        "post_clicks",
+        "post_clicks_unique",
+        "post_clicks_by_type",
+        "post_clicks_by_type_unique",
+        "post_impressions",
+        "post_impressions_unique",
+        "post_impressions_paid",
+        "post_impressions_paid_unique",
+        "post_impressions_fan",
+        "post_impressions_fan_unique",
+        "post_impressions_fan_paid",
+        "post_impressions_fan_paid_unique",
+        "post_impressions_organic",
+        "post_impressions_organic_unique",
+        "post_impressions_viral",
+        "post_impressions_viral_unique",
+        "post_impressions_nonviral",
+        "post_impressions_nonviral_unique",
+        "post_impressions_by_story_type",
+        "post_impressions_by_story_type_unique",
+        "post_reactions_by_type_total",
+        "post_video_complete_views_30s_autoplayed",
+        "post_video_complete_views_30s_clicked_to_play",
+        "post_video_complete_views_30s_organic",
+        "post_video_complete_views_30s_paid",
+        "post_video_complete_views_30s_unique",
         "post_video_avg_time_watched",
         "post_video_complete_views_organic",
         "post_video_complete_views_organic_unique",
@@ -471,7 +420,6 @@ class PageVideoPostsInsightsStream(PostInsightsStream):
         "post_video_views_unique",
         "post_video_views_autoplayed",
         "post_video_views_clicked_to_play",
-        "post_video_views_15s",
         "post_video_views_60s_excludes_shorter",
         "post_video_views_10s",
         "post_video_views_10s_unique",
@@ -483,7 +431,29 @@ class PageVideoPostsInsightsStream(PostInsightsStream):
         "post_video_views_sound_on",
         "post_video_view_time",
         "post_video_view_time_organic",
+        "post_video_view_time_by_age_bucket_and_gender",
+        "post_video_view_time_by_region_id",
+        "post_video_views_by_distribution_type",
+        "post_video_view_time_by_distribution_type",
+        "post_video_view_time_by_country_id",
+        "post_video_ad_break_ad_impressions",
+        "post_video_ad_break_earnings",
+        "post_video_ad_break_ad_cpm",
     ]
+
+    def get_url_params(
+        self, context: Optional[dict], next_page_token: Optional[Any]
+    ) -> Dict[str, Any]:
+        params = super().get_url_params(context, next_page_token)
+        # params["period"] = "day"  # TODO: might need separate day and lifetime base classes
+        # if no state is found, get all data since the post was published
+        # this is guaranteed to be in the last X months, where X is the configured `insights_lookback_months`
+        params["since"] = pendulum.instance(
+            self.get_starting_timestamp(context) or context["created_time"]
+        ).subtract(days=1).to_date_string()
+        params["access_token"] = self.page_access_tokens[context["page_id"]]
+        params["metric"] = ",".join(self.metrics)
+        return params
 
 
 class PageVideoPostsRecentInsightsStream(RecentPostInsightsStream):
@@ -507,7 +477,7 @@ class PageVideoPostsRecentInsightsStream(RecentPostInsightsStream):
         "post_video_views_unique",
         "post_video_views_autoplayed",
         "post_video_views_clicked_to_play",
-        "post_video_views_15s",
+        # "post_video_views_15s",
         "post_video_views_60s_excludes_shorter",
         "post_video_views_10s",
         "post_video_views_10s_unique",
@@ -519,17 +489,62 @@ class PageVideoPostsRecentInsightsStream(RecentPostInsightsStream):
         "post_video_views_sound_on",
         "post_video_view_time",
         "post_video_view_time_organic",
-    ]
-
-
-class PageVideoAdBreaksInsightsStream(PageInsightsStream):
-    """https://developers.facebook.com/docs/graph-api/reference/insights#video-ad-breaks"""
-    name = "page_video_ad_breaks_insights"
-    metrics = [
-        "page_daily_video_ad_break_ad_impressions_by_crosspost_status",
-        "page_daily_video_ad_break_cpm_by_crosspost_status",
-        "page_daily_video_ad_break_earnings_by_crosspost_status",
+        # there last 3 metrics throw a permissions error
+        # seems like we can access monetization from /insights but not /published_posts
         # "post_video_ad_break_ad_impressions",
         # "post_video_ad_break_earnings",
         # "post_video_ad_break_ad_cpm",
     ]
+
+
+# deprecated in favor of PagePostsInsightsStream
+# class PagePostEngagementInsightsStream(PostInsightsStream):
+#     """https://developers.facebook.com/docs/graph-api/reference/insights#page-post-engagement"""
+#     name = "page_post_engagement_insights"
+#     metrics = [
+#         "post_engaged_users",
+#         "post_negative_feedback",
+#         "post_negative_feedback_unique",
+#         "post_negative_feedback_by_type",
+#         "post_negative_feedback_by_type_unique",
+#         "post_engaged_fan",
+#         "post_clicks",
+#         "post_clicks_unique",
+#         "post_clicks_by_type",
+#         "post_clicks_by_type_unique",
+#     ]
+
+
+# deprecated in favor of PagePostsInsightsStream
+# class PagePostImpressionsInsightsStream(PostInsightsStream):
+#     """https://developers.facebook.com/docs/graph-api/reference/insights#page-post-impressions"""
+#     name = "page_post_impressions_insights"
+#     metrics = [
+#         "post_impressions",
+#         "post_impressions_unique",
+#         "post_impressions_paid",
+#         "post_impressions_paid_unique",
+#         "post_impressions_fan",
+#         "post_impressions_fan_unique",
+#         "post_impressions_fan_paid",
+#         "post_impressions_fan_paid_unique",
+#         "post_impressions_organic",
+#         "post_impressions_organic_unique",
+#         "post_impressions_viral",
+#         "post_impressions_viral_unique",
+#         "post_impressions_nonviral",
+#         "post_impressions_nonviral_unique",
+#         "post_impressions_by_story_type",
+#         "post_impressions_by_story_type_unique",
+#     ]
+
+
+# deprecated in favor of PagePostsInsightsStream
+# class PostVideoAdBreaksInsightsStream(PostInsightsStream):
+#     """https://developers.facebook.com/docs/graph-api/reference/insights#video-ad-breaks"""
+#     name = "post_video_ad_breaks_insights"
+#     metrics = [
+#         "post_video_ad_break_ad_impressions",
+#         "post_video_ad_break_earnings",
+#         "post_video_ad_break_ad_cpm",
+#     ]
