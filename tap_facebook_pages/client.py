@@ -108,7 +108,7 @@ class FacebookPagesStream(RESTStream):
     def validate_response(self, response: requests.Response) -> None:
         # TODO: Handle 100 response code
         # TODO: Handle "reduce data you're asking for" for videos stream
-        if 400 <= response.status_code <= 500:
+        if 400 <= response.status_code < 500:
             msg = (
                 f"{response.status_code} Client Error: "
                 f"{response.reason} for path: {self.path}: "
@@ -132,11 +132,11 @@ class FacebookPagesStream(RESTStream):
             ):
                 raise RetriableAPIError(msg)
             # FB will occasionally throw a 500 with this vague message - might as well retry :shrug:
-            if (
-                response.status_code == 500
-                and response.json().get("error", {}).get("message") ==
-                "An unknown error occurred"
-            ):
-                raise RetriableAPIError(msg)
+            # if (
+            #     response.status_code == 500
+            #     and response.json().get("error", {}).get("message") ==
+            #     "An unknown error occurred"
+            # ):
+            #     raise RetriableAPIError(msg)
             raise FatalAPIError(msg)
         super().validate_response(response)

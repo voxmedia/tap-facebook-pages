@@ -38,29 +38,25 @@ python-versions = ">=3.7,<4.0"
 
 [[package]]
 name = "black"
-version = "21.12b0"
+version = "22.10.0"
 description = "The uncompromising code formatter."
 category = "dev"
 optional = false
-python-versions = ">=3.6.2"
+python-versions = ">=3.7"
 
 [package.dependencies]
-click = ">=7.1.2"
+click = ">=8.0.0"
 mypy-extensions = ">=0.4.3"
-pathspec = ">=0.9.0,<1"
+pathspec = ">=0.9.0"
 platformdirs = ">=2"
-tomli = ">=0.2.6,<2.0.0"
+tomli = {version = ">=1.1.0", markers = "python_full_version < \"3.11.0a7\""}
 typed-ast = {version = ">=1.4.2", markers = "python_version < \"3.8\" and implementation_name == \"cpython\""}
-typing-extensions = [
-    {version = ">=3.10.0.0", markers = "python_version < \"3.10\""},
-    {version = "!=3.10.0.1", markers = "python_version >= \"3.10\""},
-]
+typing-extensions = {version = ">=3.10.0.0", markers = "python_version < \"3.10\""}
 
 [package.extras]
 colorama = ["colorama (>=0.4.3)"]
 d = ["aiohttp (>=3.7.4)"]
 jupyter = ["ipython (>=7.8.0)", "tokenize-rt (>=3.2.0)"]
-python2 = ["typed-ast (>=1.4.3)"]
 uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
@@ -220,7 +216,7 @@ grpcio-gcp = ["grpcio-gcp (>=0.2.2,<1.0dev)"]
 
 [[package]]
 name = "google-auth"
-version = "2.14.0"
+version = "2.14.1"
 description = "Google Authentication Library"
 category = "main"
 optional = false
@@ -235,16 +231,16 @@ six = ">=1.9.0"
 [package.extras]
 aiohttp = ["requests (>=2.20.0,<3.0.0dev)", "aiohttp (>=3.6.2,<4.0.0dev)"]
 enterprise_cert = ["cryptography (==36.0.2)", "pyopenssl (==22.0.0)"]
-pyopenssl = ["pyopenssl (>=20.0.0)"]
+pyopenssl = ["pyopenssl (>=20.0.0)", "cryptography (>=38.0.3)"]
 reauth = ["pyu2f (>=0.1.5)"]
 
 [[package]]
 name = "google-cloud-bigquery"
-version = "3.3.6"
+version = "3.4.0"
 description = "Google BigQuery API client library"
 category = "main"
 optional = false
-python-versions = ">=3.7, <3.11"
+python-versions = ">=3.7"
 
 [package.dependencies]
 google-api-core = {version = ">=1.31.5,<2.0.0 || >2.3.0,<3.0.0dev", extras = ["grpc"]}
@@ -329,21 +325,21 @@ requests = ["requests (>=2.18.0,<3.0.0dev)"]
 
 [[package]]
 name = "googleapis-common-protos"
-version = "1.56.4"
+version = "1.57.0"
 description = "Common protobufs used in Google APIs"
 category = "main"
 optional = false
 python-versions = ">=3.7"
 
 [package.dependencies]
-protobuf = ">=3.15.0,<5.0.0dev"
+protobuf = ">=3.19.5,<3.20.0 || >3.20.0,<3.20.1 || >3.20.1,<4.21.1 || >4.21.1,<4.21.2 || >4.21.2,<4.21.3 || >4.21.3,<4.21.4 || >4.21.4,<4.21.5 || >4.21.5,<5.0.0dev"
 
 [package.extras]
-grpc = ["grpcio (>=1.0.0,<2.0.0dev)"]
+grpc = ["grpcio (>=1.44.0,<2.0.0dev)"]
 
 [[package]]
 name = "greenlet"
-version = "2.0.0"
+version = "2.0.1"
 description = "Lightweight in-process concurrent programming"
 category = "main"
 optional = false
@@ -351,25 +347,22 @@ python-versions = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*"
 
 [package.extras]
 docs = ["sphinx", "docutils (<0.18)"]
-test = ["objgraph", "faulthandler"]
+test = ["objgraph", "psutil", "faulthandler"]
 
 [[package]]
 name = "grpcio"
-version = "1.50.0"
+version = "1.51.0"
 description = "HTTP/2-based RPC framework"
 category = "main"
 optional = false
 python-versions = ">=3.7"
 
-[package.dependencies]
-six = ">=1.5.2"
-
 [package.extras]
-protobuf = ["grpcio-tools (>=1.50.0)"]
+protobuf = ["grpcio-tools (>=1.51.0)"]
 
 [[package]]
 name = "grpcio-status"
-version = "1.50.0"
+version = "1.51.0"
 description = "Status proto mapping for gRPC"
 category = "main"
 optional = false
@@ -377,7 +370,7 @@ python-versions = ">=3.6"
 
 [package.dependencies]
 googleapis-common-protos = ">=1.5.5"
-grpcio = ">=1.50.0"
+grpcio = ">=1.51.0"
 protobuf = ">=4.21.6"
 
 [[package]]
@@ -390,7 +383,7 @@ python-versions = ">=3.5"
 
 [[package]]
 name = "importlib-metadata"
-version = "5.0.0"
+version = "4.13.0"
 description = "Read metadata from Python packages"
 category = "main"
 optional = false
@@ -407,7 +400,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "flake8 
 
 [[package]]
 name = "importlib-resources"
-version = "5.10.0"
+version = "5.9.0"
 description = "Read resources from Python packages"
 category = "main"
 optional = false
@@ -417,8 +410,8 @@ python-versions = ">=3.7"
 zipp = {version = ">=3.1.0", markers = "python_version < \"3.10\""}
 
 [package.extras]
-docs = ["sphinx (>=3.5)", "jaraco.packaging (>=9)", "rst.linker (>=1.9)", "furo", "jaraco.tidelift (>=1.4)"]
-testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "flake8 (<5)", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-black (>=0.3.7)", "pytest-mypy (>=0.9.1)"]
+docs = ["sphinx", "jaraco.packaging (>=9)", "rst.linker (>=1.9)", "jaraco.tidelift (>=1.4)"]
+testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-black (>=0.3.7)", "pytest-mypy (>=0.9.1)"]
 
 [[package]]
 name = "inflection"
@@ -473,7 +466,7 @@ six = "*"
 
 [[package]]
 name = "jsonschema"
-version = "4.17.0"
+version = "4.17.1"
 description = "An implementation of JSON Schema validation for Python"
 category = "main"
 optional = false
@@ -554,7 +547,7 @@ pyparsing = ">=2.0.2,<3.0.5 || >3.0.5"
 
 [[package]]
 name = "pathspec"
-version = "0.10.1"
+version = "0.10.2"
 description = "Utility library for gitignore style pattern matching of file paths."
 category = "dev"
 optional = false
@@ -582,15 +575,15 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "platformdirs"
-version = "2.5.2"
-description = "A small Python module for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
+version = "2.5.4"
+description = "A small Python package for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 
 [package.extras]
-docs = ["furo (>=2021.7.5b38)", "proselint (>=0.10.2)", "sphinx-autodoc-typehints (>=1.12)", "sphinx (>=4)"]
-test = ["appdirs (==1.4.4)", "pytest-cov (>=2.7)", "pytest-mock (>=3.6)", "pytest (>=6)"]
+docs = ["furo (>=2022.9.29)", "proselint (>=0.13)", "sphinx-autodoc-typehints (>=1.19.4)", "sphinx (>=5.3)"]
+test = ["appdirs (==1.4.4)", "pytest-cov (>=4)", "pytest-mock (>=3.10)", "pytest (>=7.2)"]
 
 [[package]]
 name = "pluggy"
@@ -647,7 +640,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
 name = "pyarrow"
-version = "10.0.0"
+version = "10.0.1"
 description = "Python library for Apache Arrow"
 category = "main"
 optional = false
@@ -740,7 +733,7 @@ diagrams = ["railroad-diagrams", "jinja2"]
 
 [[package]]
 name = "pyrsistent"
-version = "0.19.1"
+version = "0.19.2"
 description = "Persistent/Functional/Immutable data structures"
 category = "main"
 optional = false
@@ -845,7 +838,7 @@ pyasn1 = ">=0.1.3"
 
 [[package]]
 name = "simplejson"
-version = "3.17.6"
+version = "3.18.0"
 description = "Simple, fast, extensible JSON encoder/decoder for Python"
 category = "main"
 optional = false
@@ -853,19 +846,19 @@ python-versions = ">=2.5, !=3.0.*, !=3.1.*, !=3.2.*"
 
 [[package]]
 name = "singer-sdk"
-version = "0.13.0"
+version = "0.13.1"
 description = "A framework for building Singer taps"
 category = "main"
 optional = false
-python-versions = ">=3.7.1,<3.11"
+python-versions = ">=3.7.1,<3.12"
 
 [package.dependencies]
 backoff = ">=2.0.0,<3.0"
 click = ">=8.0,<9.0"
 cryptography = ">=3.4.6,<39.0.0"
 fs = ">=2.4.16,<3.0.0"
-importlib-metadata = {version = "*", markers = "python_version < \"3.8\""}
-importlib-resources = {version = ">=5.9.0,<6.0.0", markers = "python_version < \"3.9\""}
+importlib-metadata = {version = "<5.0.0", markers = "python_version < \"3.8\""}
+importlib-resources = {version = "5.9.0", markers = "python_version < \"3.9\""}
 inflection = ">=0.5.1,<0.6.0"
 joblib = ">=1.0.1,<2.0.0"
 jsonpath-ng = ">=1.5.3,<2.0.0"
@@ -902,7 +895,7 @@ python-versions = "*"
 
 [[package]]
 name = "sqlalchemy"
-version = "1.4.42"
+version = "1.4.44"
 description = "Database Abstraction Library"
 category = "main"
 optional = false
@@ -943,15 +936,15 @@ python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 
 [[package]]
 name = "tomli"
-version = "1.2.3"
+version = "2.0.1"
 description = "A lil' TOML parser"
 category = "dev"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 
 [[package]]
 name = "tox"
-version = "3.25.1"
+version = "3.27.1"
 description = "tox is a generic virtualenv management and test command line tool"
 category = "dev"
 optional = false
@@ -965,7 +958,7 @@ packaging = ">=14"
 pluggy = ">=0.12.0"
 py = ">=1.4.17"
 six = ">=1.14.0"
-toml = ">=0.9.4"
+tomli = {version = ">=2.0.1", markers = "python_version >= \"3.7\" and python_version < \"3.11\""}
 virtualenv = ">=16.0.0,<20.0.0 || >20.0.0,<20.0.1 || >20.0.1,<20.0.2 || >20.0.2,<20.0.3 || >20.0.3,<20.0.4 || >20.0.4,<20.0.5 || >20.0.5,<20.0.6 || >20.0.6,<20.0.7 || >20.0.7"
 
 [package.extras]
@@ -982,7 +975,7 @@ python-versions = "*"
 
 [[package]]
 name = "types-requests"
-version = "2.28.11.2"
+version = "2.28.11.5"
 description = "Typing stubs for requests"
 category = "dev"
 optional = false
@@ -993,7 +986,7 @@ types-urllib3 = "<1.27"
 
 [[package]]
 name = "types-urllib3"
-version = "1.26.25.1"
+version = "1.26.25.4"
 description = "Typing stubs for urllib3"
 category = "dev"
 optional = false
@@ -1022,7 +1015,7 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 
 [[package]]
 name = "virtualenv"
-version = "20.16.6"
+version = "20.16.7"
 description = "Virtual Python Environment builder"
 category = "dev"
 optional = false
@@ -1053,7 +1046,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "flake8 
 [metadata]
 lock-version = "1.1"
 python-versions = "<3.11,>=3.7.1"
-content-hash = "8e7a8dc32619d8f8669110d916c1f907fe662c102eb2ae540533c613db3ae781"
+content-hash = "6ccdca7b2545263225a467819adbbe8ef9c744c28030d4f249d035b956d3242f"
 
 [metadata.files]
 appdirs = []
