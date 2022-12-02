@@ -51,7 +51,6 @@ class TapFacebookPages(Tap):
 
     name = "tap-facebook-pages"
 
-    # TODO: Configurable threshold for post age cutoff when fetching insights
     config_jsonschema = th.PropertiesList(
         th.Property(
             "user_token",
