@@ -36,7 +36,7 @@ class FacebookPagesStream(RESTStream):
 
     @property
     def partitions(self) -> List[Dict[str, str]]:
-        return [{"page_id": page_id} for page_id in self.config["page_ids"]]
+        return [{"page_id": page["id"]} for page in self.config["pages"]]
 
     # @property
     # def authenticator(self) -> APIKeyAuthenticator:
@@ -57,6 +57,13 @@ class FacebookPagesStream(RESTStream):
         # If not using an authenticator, you may also provide inline auth headers:
         # headers["Private-Token"] = self.config.get("auth_token")
         return headers
+
+    def backoff_max_tries(self) -> int:
+        """
+        Increase from default of 5 to 10 since FB often throws 500s that need more attempts.
+        Paired with the default exponential backoff strategy, this should help!
+        """
+        return 10
 
     def get_next_page_token(
         self, response: requests.Response, previous_token: Optional[Any]

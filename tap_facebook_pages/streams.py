@@ -29,6 +29,7 @@ class PagesStream(FacebookPagesStream):
         self, context: Optional[dict], next_page_token: Optional[Any]
     ) -> Dict[str, Any]:
         params = super().get_url_params(context, next_page_token)
+        params["access_token"] = self.page_access_tokens[context["page_id"]]
         params["fields"] = ",".join(self.schema["properties"].keys())
         return params
 
@@ -190,9 +191,15 @@ class PageInsightsStream(InsightsStream):
     ) -> Dict[str, Any]:
         params = super().get_url_params(context, next_page_token)
         # params["period"] = "day"  # TODO: might need separate day and lifetime base classes
-        # TODO: should this be incremental?
-        # `since` date isn't included in the range so subtract 1 day
-        params["since"] = pendulum.parse(self.config["start_date"]).subtract(days=1).to_date_string()
+        # TODO: pagination with since and until in smaller batches
+        if self.get_starting_timestamp(context):
+            # extra 2 day look back in case metrics are updated late
+            params["since"] = pendulum.instance(
+                self.get_starting_timestamp(context)
+            ).subtract(days=2).to_date_string()
+        else:
+            # `since` date isn't included in the range so subtract 1 day
+            params["since"] = pendulum.parse(self.config["start_date"]).subtract(days=1).to_date_string()
         params["access_token"] = self.page_access_tokens[context["page_id"]]
         params["metric"] = ",".join(self.metrics)
         return params
@@ -283,6 +290,14 @@ class PageVideoViewsInsightsStream(PageInsightsStream):
         "page_video_views_click_to_play",
         "page_video_views_unique",
         "page_video_repeat_views",
+        "page_video_view_time",
+    ]
+
+
+class PageVideoViews2InsightsStream(PageInsightsStream):
+    """https://developers.facebook.com/docs/graph-api/reference/insights#videoviews"""
+    name = "page_video_views_2_insights"
+    metrics = [
         "page_video_complete_views_30s",
         "page_video_complete_views_30s_paid",
         "page_video_complete_views_30s_organic",
@@ -297,7 +312,6 @@ class PageVideoViewsInsightsStream(PageInsightsStream):
         "page_video_views_10s_click_to_play",
         "page_video_views_10s_unique",
         "page_video_views_10s_repeat",
-        "page_video_view_time",
     ]
 
 

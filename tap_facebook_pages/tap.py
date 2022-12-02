@@ -15,6 +15,7 @@ from tap_facebook_pages.streams import (
     PagesStream,
     PageVideoAdBreaksInsightsStream,
     PageVideoViewsInsightsStream,
+    PageVideoViews2InsightsStream,
     PostInsightsStream,
     PostsStream,
     RecentPostInsightsStream,
@@ -23,16 +24,17 @@ from tap_facebook_pages.streams import (
 
 # TODO: post_ids in historical insights are null
 STREAM_TYPES = [
-    AllPostsStream,
+    # AllPostsStream,
     PageEngagementInsightsStream,
     PageImpressionsInsightsStream,
     PagePostsInsightsStream,
     PagesStream,
-    PageVideoAdBreaksInsightsStream,
+    # PageVideoAdBreaksInsightsStream,
     PageVideoViewsInsightsStream,
-    PostInsightsStream,
-    PostsStream,
-    RecentPostInsightsStream,
+    PageVideoViews2InsightsStream,
+    # PostInsightsStream,
+    # PostsStream,
+    # RecentPostInsightsStream,
     # VideoStream,
 ]
 
@@ -56,17 +58,26 @@ class TapFacebookPages(Tap):
             secret=True,  # Flag config as protected.
             description="Long-lived user access token with access to all pages.",
         ),
+        # th.Property(
+        #     "page_ids",
+        #     th.ArrayType(th.StringType),
+        #     required=True,
+        #     description="Page IDs of Facebook pages for which to fetch data."
+        # ),
         th.Property(
-            "page_ids",
-            th.ArrayType(th.StringType),
-            required=True,
-            description="Page IDs of Facebook pages for which to fetch data."
+            "pages",
+            th.ArrayType(
+                th.ObjectType(
+                    th.Property("id", th.StringType, required=True),
+                    th.Property("access_token", th.StringType, required=True, secret=True),
+                )
+            )
         ),
         th.Property(
             "start_date",
             th.DateTimeType,
             description="Start date for fetching historical data.",
-            default="2022-01-01T00:00:00Z",
+            default="2022-10-01T00:00:00Z",
         ),
         th.Property(
             "insights_lookback_months",
@@ -104,7 +115,7 @@ class TapFacebookPages(Tap):
         # TODO: do this just for the base class?
         for stream_class in STREAM_TYPES:
             stream_class.page_access_tokens = {
-                page_id: self.exchange_token(page_id) for page_id in self.config["page_ids"]
+                page["id"]: page["access_token"] for page in self.config["pages"]
             }
         return [stream_class(tap=self) for stream_class in STREAM_TYPES]
 
