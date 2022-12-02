@@ -1,11 +1,12 @@
 """FacebookPages tap class."""
 
 import json
-import requests
 from typing import List
 
-from singer_sdk import Tap, Stream
+import requests
+from singer_sdk import Stream, Tap
 from singer_sdk import typing as th  # JSON schema typing helpers
+
 # TODO: Import your custom stream types here:
 from tap_facebook_pages.streams import (
     AllPostsStream,
@@ -14,8 +15,8 @@ from tap_facebook_pages.streams import (
     PagePostsInsightsStream,
     PagesStream,
     PageVideoAdBreaksInsightsStream,
-    PageVideoViewsInsightsStream,
     PageVideoViews2InsightsStream,
+    PageVideoViewsInsightsStream,
     PostInsightsStream,
     PostsStream,
     RecentPostInsightsStream,
@@ -47,6 +48,7 @@ session = requests.Session()
 
 class TapFacebookPages(Tap):
     """FacebookPages tap class."""
+
     name = "tap-facebook-pages"
 
     # TODO: Configurable threshold for post age cutoff when fetching insights
@@ -69,9 +71,11 @@ class TapFacebookPages(Tap):
             th.ArrayType(
                 th.ObjectType(
                     th.Property("id", th.StringType, required=True),
-                    th.Property("access_token", th.StringType, required=True, secret=True),
+                    th.Property(
+                        "access_token", th.StringType, required=True, secret=True
+                    ),
                 )
-            )
+            ),
         ),
         th.Property(
             "start_date",
@@ -83,7 +87,7 @@ class TapFacebookPages(Tap):
             "insights_lookback_months",
             th.IntegerType,
             description="The lookback period for fetching insights data. Defaults to 12 months, meaning that we fetch "
-                        "insights only for the last 12 months and for posts published within the last 12 months.",
+            "insights only for the last 12 months and for posts published within the last 12 months.",
             default=24,
         ),
     ).to_dict()
@@ -92,19 +96,21 @@ class TapFacebookPages(Tap):
         url = f"{BASE_URL}/{page_id}"
         data = {
             "fields": "access_token,name",
-            "access_token": self.config["user_token"]
+            "access_token": self.config["user_token"],
         }
 
         self.logger.info("Exchanging access token for page with id=" + page_id)
         response = session.get(url=url, params=data)
         response_data = json.loads(response.text)
         if response.status_code != 200:
-            error_message = "Failed exchanging token: " + response_data["error"]["message"]
-            self.logger.error(error_message)
-            raise RuntimeError(
-                error_message
+            error_message = (
+                "Failed exchanging token: " + response_data["error"]["message"]
             )
-        self.logger.info("Successfully exchanged access token for page with id=" + page_id)
+            self.logger.error(error_message)
+            raise RuntimeError(error_message)
+        self.logger.info(
+            "Successfully exchanged access token for page with id=" + page_id
+        )
         return response_data["access_token"]
 
     def discover_streams(self) -> List[Stream]:

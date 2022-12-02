@@ -1,18 +1,16 @@
 """REST client handling, including FacebookPagesStream base class."""
 
 import re
-import requests
 import urllib.parse
 from pathlib import Path
-from typing import Any, Dict, Optional, Union, List, Iterable
+from typing import Any, Dict, Iterable, List, Optional, Union
 
+import requests
 from memoization import cached
-
+from singer_sdk.authenticators import APIKeyAuthenticator
 from singer_sdk.exceptions import FatalAPIError, RetriableAPIError
 from singer_sdk.helpers.jsonpath import extract_jsonpath
 from singer_sdk.streams import RESTStream
-from singer_sdk.authenticators import APIKeyAuthenticator
-
 
 SCHEMAS_DIR = Path(__file__).parent / Path("./schemas")
 GRAPH_API_VERSION = 15.0
@@ -31,7 +29,9 @@ class FacebookPagesStream(RESTStream):
     #     return self.config["api_url"]
 
     records_jsonpath = "$[*]"  # Or override `parse_response`.
-    next_page_token_jsonpath = "$.paging.cursors.after"  # Or override `get_next_page_token`.
+    next_page_token_jsonpath = (
+        "$.paging.cursors.after"  # Or override `get_next_page_token`.
+    )
     page_access_tokens: Dict[str, str] = None
 
     @property
@@ -98,13 +98,17 @@ class FacebookPagesStream(RESTStream):
         return params
 
     def prepare_request(
-        self,
-        context: Optional[dict],
-        next_page_token: Optional[Any] = None
+        self, context: Optional[dict], next_page_token: Optional[Any] = None
     ) -> requests.PreparedRequest:
         req = super().prepare_request(context, next_page_token)
         # self.logger.info(urllib.parse.unquote(req.url))
-        self.logger.info(re.sub("access_token=[a-zA-Z0-9]+&", "access_token=*****&", urllib.parse.unquote(req.url)))
+        self.logger.info(
+            re.sub(
+                "access_token=[a-zA-Z0-9]+&",
+                "access_token=*****&",
+                urllib.parse.unquote(req.url),
+            )
+        )
         return req
 
     def parse_response(self, response: requests.Response) -> Iterable[dict]:
@@ -123,10 +127,11 @@ class FacebookPagesStream(RESTStream):
             )
             # If a post is not found when attempting to fetch insights
             # this should not stop the entire sync. Log and move on!
-            not_exists_pattern = re.compile("^.*Object with ID '[0-9]+_[0-9]+' does not exist.*$")
-            if (
-                response.status_code == 400
-                and not_exists_pattern.match(response.json().get('error', {}).get('message'))
+            not_exists_pattern = re.compile(
+                "^.*Object with ID '[0-9]+_[0-9]+' does not exist.*$"
+            )
+            if response.status_code == 400 and not_exists_pattern.match(
+                response.json().get("error", {}).get("message")
             ):
                 self.logger.warning(f"Skipping record because object not found: {msg}")
                 return
@@ -134,8 +139,8 @@ class FacebookPagesStream(RESTStream):
             # even though we should already be using one. A retry appears to resolve this.
             if (
                 response.status_code == 400
-                and response.json().get("error", {}).get("message") ==
-                "(#190) This method must be called with a Page Access Token"
+                and response.json().get("error", {}).get("message")
+                == "(#190) This method must be called with a Page Access Token"
             ):
                 raise RetriableAPIError(msg)
             # FB will occasionally throw a 500 with this vague message - might as well retry :shrug:

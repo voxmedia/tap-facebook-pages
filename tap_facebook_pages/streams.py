@@ -1,20 +1,20 @@
 """Stream type classes for tap-facebook-pages."""
 
-import requests
 from pathlib import Path
-from typing import Any, Dict, Optional, Union, List, Iterable
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 import pendulum
+import requests
 from google.cloud import bigquery
 
 from tap_facebook_pages.client import FacebookPagesStream
-
 
 SCHEMAS_DIR = Path(__file__).parent / Path("./schemas")
 
 
 class PagesStream(FacebookPagesStream):
     """Define custom stream."""
+
     name = "pages"
     path = "/{page_id}"
     primary_keys = ["id"]
@@ -36,6 +36,7 @@ class PagesStream(FacebookPagesStream):
 
 class PostsStream(FacebookPagesStream):
     """Define custom stream."""
+
     name = "posts"
     parent_stream_type = PagesStream
     path = "/{page_id}/published_posts"
@@ -124,10 +125,13 @@ class InsightsStream(FacebookPagesStream):
     Base class for all Insights streams. They all return InsightsResult objects as described
     [here](https://developers.facebook.com/docs/graph-api/reference/insights-result/)
     """
+
     name = None
     primary_keys = ["id"]
     replication_key = "end_time"
-    schema_filepath = SCHEMAS_DIR / "post_insights.json"  # TODO: different schemas for page/post insights
+    schema_filepath = (
+        SCHEMAS_DIR / "post_insights.json"
+    )  # TODO: different schemas for page/post insights
     records_jsonpath = "$.data[*]"
     metrics: List[str] = None
 
@@ -151,11 +155,15 @@ class InsightsStream(FacebookPagesStream):
             if "values" in row:
                 for values in row["values"]:
                     if values.get("end_time"):  # non lifetime
-                        end_time = pendulum.parse(values.get("end_time")).to_datetime_string()
+                        end_time = pendulum.parse(
+                            values.get("end_time")
+                        ).to_datetime_string()
                     else:  # lifetime
                         # setting end_time to some old date lets use still use it at the replication_key
                         # but without actually updating the state progress marker
-                        end_time = pendulum.today().subtract(years=2).to_datetime_string()
+                        end_time = (
+                            pendulum.today().subtract(years=2).to_datetime_string()
+                        )
                     if isinstance(values["value"], dict):
                         for key, value in values["value"].items():
                             if isinstance(value, dict):
@@ -163,7 +171,7 @@ class InsightsStream(FacebookPagesStream):
                                     item = {
                                         "context": f"{key} > {k}",
                                         "value": float(v),
-                                        "end_time": end_time
+                                        "end_time": end_time,
                                     }
                                     item.update(base_item)
                                     yield item
@@ -171,7 +179,7 @@ class InsightsStream(FacebookPagesStream):
                                 item = {
                                     "context": key,
                                     "value": float(value),
-                                    "end_time": end_time
+                                    "end_time": end_time,
                                 }
                                 item.update(base_item)
                                 yield item
@@ -183,6 +191,7 @@ class InsightsStream(FacebookPagesStream):
 
 class PageInsightsStream(InsightsStream):
     """Base class for Page Insights streams"""
+
     parent_stream_type = PagesStream
     path = "/{page_id}/insights"
 
@@ -194,12 +203,18 @@ class PageInsightsStream(InsightsStream):
         # TODO: pagination with since and until in smaller batches
         if self.get_starting_timestamp(context):
             # extra 2 day look back in case metrics are updated late
-            params["since"] = pendulum.instance(
-                self.get_starting_timestamp(context)
-            ).subtract(days=2).to_date_string()
+            params["since"] = (
+                pendulum.instance(self.get_starting_timestamp(context))
+                .subtract(days=2)
+                .to_date_string()
+            )
         else:
             # `since` date isn't included in the range so subtract 1 day
-            params["since"] = pendulum.parse(self.config["start_date"]).subtract(days=1).to_date_string()
+            params["since"] = (
+                pendulum.parse(self.config["start_date"])
+                .subtract(days=1)
+                .to_date_string()
+            )
         params["access_token"] = self.page_access_tokens[context["page_id"]]
         params["metric"] = ",".join(self.metrics)
         return params
@@ -207,6 +222,7 @@ class PageInsightsStream(InsightsStream):
 
 class PageEngagementInsightsStream(PageInsightsStream):
     """https://developers.facebook.com/docs/graph-api/reference/insights#page-engagement"""
+
     name = "page_engagement_insights"
     metrics = [
         "page_engaged_users",
@@ -236,6 +252,7 @@ class PageEngagementInsightsStream(PageInsightsStream):
 
 class PageImpressionsInsightsStream(PageInsightsStream):
     """https://developers.facebook.com/docs/graph-api/reference/insights#page-impressions"""
+
     name = "page_impressions_insights"
     metrics = [
         "page_impressions",
@@ -261,6 +278,7 @@ class PageImpressionsInsightsStream(PageInsightsStream):
 
 class PagePostsInsightsStream(PageInsightsStream):
     """https://developers.facebook.com/docs/graph-api/reference/insights#page-posts"""
+
     name = "page_posts_insights"
     metrics = [
         "page_posts_impressions",
@@ -280,6 +298,7 @@ class PagePostsInsightsStream(PageInsightsStream):
 
 class PageVideoViewsInsightsStream(PageInsightsStream):
     """https://developers.facebook.com/docs/graph-api/reference/insights#videoviews"""
+
     name = "page_video_views_insights"
     metrics = [
         "page_video_views",
@@ -296,6 +315,7 @@ class PageVideoViewsInsightsStream(PageInsightsStream):
 
 class PageVideoViews2InsightsStream(PageInsightsStream):
     """https://developers.facebook.com/docs/graph-api/reference/insights#videoviews"""
+
     name = "page_video_views_2_insights"
     metrics = [
         "page_video_complete_views_30s",
@@ -317,6 +337,7 @@ class PageVideoViews2InsightsStream(PageInsightsStream):
 
 class PageVideoAdBreaksInsightsStream(PageInsightsStream):
     """https://developers.facebook.com/docs/graph-api/reference/insights#video-ad-breaks"""
+
     name = "page_video_ad_breaks_insights"
     metrics = [
         "page_daily_video_ad_break_ad_impressions_by_crosspost_status",
@@ -327,6 +348,7 @@ class PageVideoAdBreaksInsightsStream(PageInsightsStream):
 
 class PostInsightsStream(InsightsStream):
     """https://developers.facebook.com/docs/graph-api/reference/insights#page-video-posts"""
+
     name = "post_insights"
     parent_stream_type = AllPostsStream
     path = "/{post_id}/insights"
@@ -409,9 +431,13 @@ class PostInsightsStream(InsightsStream):
         # params["period"] = "day"  # TODO: might need separate day and lifetime base classes
         # if no state is found, get all data since the post was published
         # this is guaranteed to be in the last X months, where X is the configured `insights_lookback_months`
-        params["since"] = pendulum.instance(
-            self.get_starting_timestamp(context) or context["created_time"]
-        ).subtract(days=1).to_date_string()
+        params["since"] = (
+            pendulum.instance(
+                self.get_starting_timestamp(context) or context["created_time"]
+            )
+            .subtract(days=1)
+            .to_date_string()
+        )
         params["access_token"] = self.page_access_tokens[context["page_id"]]
         params["metric"] = ",".join(self.metrics)
         return params
@@ -421,6 +447,7 @@ class RecentPostInsightsStream(FacebookPagesStream):
     """
     Post insights fetched from the /published_posts endpoint.
     """
+
     name = "recent_post_insights"
     parent_stream_type = PagesStream
     path = "/{page_id}/published_posts"
@@ -501,7 +528,9 @@ class RecentPostInsightsStream(FacebookPagesStream):
                         else:
                             values.update(base_item)
                             if "end_time" in values:
-                                values["end_time"] = pendulum.parse(values["end_time"]).to_datetime_string()
+                                values["end_time"] = pendulum.parse(
+                                    values["end_time"]
+                                ).to_datetime_string()
                             yield values
 
 
