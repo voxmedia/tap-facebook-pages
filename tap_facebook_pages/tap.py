@@ -25,18 +25,18 @@ from tap_facebook_pages.streams import (
 
 # TODO: post_ids in historical insights are null
 STREAM_TYPES = [
-    # AllPostsStream,
+    AllPostsStream,
     PageEngagementInsightsStream,
     PageImpressionsInsightsStream,
     PagePostsInsightsStream,
     PagesStream,
-    # PageVideoAdBreaksInsightsStream,
+    PageVideoAdBreaksInsightsStream,
     PageVideoViewsInsightsStream,
     PageVideoViews2InsightsStream,
-    # PostInsightsStream,
-    # PostsStream,
-    # RecentPostInsightsStream,
-    # VideoStream,
+    PostInsightsStream,
+    PostsStream,
+    RecentPostInsightsStream,
+    VideoStream,
 ]
 
 # TODO: define these just once
