@@ -5,6 +5,7 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 
 import pendulum
 import requests
+from backoff._typing import Details
 from google.cloud import bigquery
 
 from tap_facebook_pages.client import FacebookPagesStream
@@ -45,6 +46,9 @@ class PostsStream(FacebookPagesStream):
     schema_filepath = SCHEMAS_DIR / "posts.json"
     records_jsonpath = "$.data[*]"
 
+    def backoff_handler(self, details: Details) -> None:
+        prepared_request = details["args"][0]
+
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
         """Return a context dictionary for child streams."""
         return {
@@ -56,6 +60,7 @@ class PostsStream(FacebookPagesStream):
         self, context: Optional[dict], next_page_token: Optional[Any]
     ) -> Dict[str, Any]:
         params = super().get_url_params(context, next_page_token)
+        params["limit"] = 20
         params["access_token"] = self.page_access_tokens[context["page_id"]]
         params["fields"] = ",".join(self.schema["properties"].keys())
         return params
@@ -354,7 +359,7 @@ class PostInsightsStream(InsightsStream):
     path = "/{post_id}/insights"
     state_partitioning_keys = ["page_id"]  # too many posts to store state for each one
     metrics = [  # TODO: allow selection from config, make this dynamic
-        "post_engaged_users",  # day, day_28, week, lifetime, month
+        "post_engaged_users",
         "post_negative_feedback",
         "post_negative_feedback_unique",
         "post_negative_feedback_by_type",
@@ -443,11 +448,10 @@ class PostInsightsStream(InsightsStream):
         return params
 
 
-class RecentPostInsightsStream(FacebookPagesStream):
+class RecentInsightsStream(FacebookPagesStream):
     """
     Post insights fetched from the /published_posts endpoint.
     """
-
     name = "recent_post_insights"
     parent_stream_type = PagesStream
     path = "/{page_id}/published_posts"
@@ -455,41 +459,6 @@ class RecentPostInsightsStream(FacebookPagesStream):
     replication_key = None
     schema_filepath = SCHEMAS_DIR / "post_insights.json"
     records_jsonpath = "$.data[*]"
-    metrics = [
-        "post_video_avg_time_watched",
-        "post_video_complete_views_organic",
-        "post_video_complete_views_organic_unique",
-        "post_video_complete_views_paid",
-        "post_video_complete_views_paid_unique",
-        "post_video_retention_graph",
-        "post_video_retention_graph_clicked_to_play",
-        "post_video_retention_graph_autoplayed",
-        "post_video_views_organic",
-        "post_video_views_organic_unique",
-        "post_video_views_paid",
-        "post_video_views_paid_unique",
-        "post_video_length",
-        "post_video_views",
-        "post_video_views_unique",
-        "post_video_views_autoplayed",
-        "post_video_views_clicked_to_play",
-        "post_video_views_60s_excludes_shorter",
-        "post_video_views_10s",
-        "post_video_views_10s_unique",
-        "post_video_views_10s_autoplayed",
-        "post_video_views_10s_clicked_to_play",
-        "post_video_views_10s_organic",
-        "post_video_views_10s_paid",
-        "post_video_views_10s_sound_on",
-        "post_video_views_sound_on",
-        "post_video_view_time",
-        "post_video_view_time_organic",
-        # there last 3 metrics throw a permissions error
-        # seems like we can access monetization from /insights but not /published_posts
-        # "post_video_ad_break_ad_impressions",
-        # "post_video_ad_break_earnings",
-        # "post_video_ad_break_ad_cpm",
-    ]
 
     def get_url_params(
         self, context: Optional[dict], next_page_token: Optional[Any]
@@ -532,6 +501,94 @@ class RecentPostInsightsStream(FacebookPagesStream):
                                     values["end_time"]
                                 ).to_datetime_string()
                             yield values
+
+
+class RecentPostEngagementInsightsStream(RecentInsightsStream):
+    name = "recent_post_insights"
+    metrics = [
+        "post_engaged_users",
+        "post_negative_feedback",
+        "post_negative_feedback_unique",
+        "post_negative_feedback_by_type",
+        "post_negative_feedback_by_type_unique",
+        "post_engaged_fan",
+        "post_clicks",
+        "post_clicks_unique",
+        "post_clicks_by_type",
+        "post_clicks_by_type_unique",
+        "post_reactions_by_type_total",  # only metric we need from Page Post Reactions
+    ]
+
+
+class RecentPostImpressionsInsightsStream(RecentInsightsStream):
+    name = "recent_post_impressions_insights"
+    metrics = [
+        "post_impressions",
+        "post_impressions_unique",
+        "post_impressions_paid",
+        "post_impressions_paid_unique",
+        "post_impressions_fan",
+        "post_impressions_fan_unique",
+        "post_impressions_fan_paid",
+        "post_impressions_fan_paid_unique",
+        "post_impressions_organic",
+        "post_impressions_organic_unique",
+        "post_impressions_viral",
+        "post_impressions_viral_unique",
+        "post_impressions_nonviral",
+        "post_impressions_nonviral_unique",
+        "post_impressions_by_story_type",
+        "post_impressions_by_story_type_unique",
+    ]
+
+
+class RecentVideoPostInsightsStream(RecentInsightsStream):
+    name = "recent_video_post_insights"
+    metrics = [
+        "post_video_complete_views_30s_autoplayed",
+        "post_video_complete_views_30s_clicked_to_play",
+        "post_video_complete_views_30s_organic",
+        "post_video_complete_views_30s_paid",
+        "post_video_complete_views_30s_unique",
+        "post_video_avg_time_watched",
+        "post_video_complete_views_organic",
+        "post_video_complete_views_organic_unique",
+        "post_video_complete_views_paid",
+        "post_video_complete_views_paid_unique",
+        "post_video_retention_graph",
+        "post_video_retention_graph_clicked_to_play",
+        "post_video_retention_graph_autoplayed",
+        "post_video_views_organic",
+        "post_video_views_organic_unique",
+        "post_video_views_paid",
+        "post_video_views_paid_unique",
+        "post_video_length",
+        "post_video_views",
+        "post_video_views_unique",
+        "post_video_views_autoplayed",
+        "post_video_views_clicked_to_play",
+        "post_video_views_60s_excludes_shorter",
+        "post_video_views_10s",
+        "post_video_views_10s_unique",
+        "post_video_views_10s_autoplayed",
+        "post_video_views_10s_clicked_to_play",
+        "post_video_views_10s_organic",
+        "post_video_views_10s_paid",
+        "post_video_views_10s_sound_on",
+        "post_video_views_sound_on",
+        "post_video_view_time",
+        "post_video_view_time_organic",
+        "post_video_view_time_by_age_bucket_and_gender",
+        "post_video_view_time_by_region_id",
+        "post_video_views_by_distribution_type",
+        "post_video_view_time_by_distribution_type",
+        "post_video_view_time_by_country_id",
+        # there last 3 metrics throw a permissions error
+        # seems like we can access monetization from /insights but not /published_posts
+        # "post_video_ad_break_ad_impressions",
+        # "post_video_ad_break_earnings",
+        # "post_video_ad_break_ad_cpm",
+    ]
 
 
 # deprecated in favor of PagePostsInsightsStream
