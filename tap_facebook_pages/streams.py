@@ -76,12 +76,16 @@ class AllPostsStream(FacebookPagesStream):
     records_jsonpath = "$"
 
     def request_records(self, context: Optional[dict]) -> Iterable[dict]:
-        # TODO: take table name from config
-        posts_query = """
-            select distinct post_id as id, created_time
-            from `g9-data-warehouse-prod.facebook_posts.most_recent`
+
+        posts_table_name = self.config.get("posts_table_name")
+        post_id_field = self.config.get("post_id_field")
+        post_created_at_field = self.config.get("post_created_at_field")
+
+        posts_query = f"""
+            select distinct {post_id_field} as id, timestamp({post_created_at_field}) as created_time
+            from `{posts_table_name}`
             where 
-                split(post_id, '_')[safe_offset(0)] = @page_id
+                split({post_id_field}, '_')[safe_offset(0)] = @page_id
                 and date(created_time) >= date_sub(current_date, interval @insights_lookback_months month)
         """
         self.logger.info(f"Executing query: {posts_query}")
