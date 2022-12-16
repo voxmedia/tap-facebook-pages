@@ -381,6 +381,7 @@ class PostInsightsStream(InsightsStream):
         "post_impressions_by_story_type",
         "post_impressions_by_story_type_unique",
         "post_reactions_by_type_total",
+        "post_video_complete_views_30s",
         "post_video_complete_views_30s_autoplayed",
         "post_video_complete_views_30s_clicked_to_play",
         "post_video_complete_views_30s_organic",
