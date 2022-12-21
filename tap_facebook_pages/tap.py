@@ -21,6 +21,8 @@ from tap_facebook_pages.streams import (
     PostsStream,
     RecentPostInsightsStream,
     VideoStream,
+    AllVideosStream,
+    VideoInsightsStream,
 )
 
 # TODO: post_ids in historical insights are null
@@ -37,6 +39,8 @@ STREAM_TYPES = [
     PostsStream,
     RecentPostInsightsStream,
     VideoStream,
+    AllVideosStream,
+    VideoInsightsStream,
 ]
 
 # TODO: define these just once
@@ -88,6 +92,36 @@ class TapFacebookPages(Tap):
             description="The lookback period for fetching insights data. Defaults to 12 months, meaning that we fetch "
             "insights only for the last 12 months and for posts published within the last 12 months.",
             default=24,
+        ),
+        # th.Property(
+        #     "posts_table_name",
+        #     th.StringType,
+        #     description="The table name used to fetch post IDs from in the form of project.schema.table_name",
+        # ),
+        # th.Property(
+        #     "post_id_field",
+        #     th.StringType,
+        #     description="The name of the post ID field",
+        # ),
+        # th.Property(
+        #     "post_created_at_field",
+        #     th.StringType,
+        #     description="The name of the post created timestamp field",
+        # ),
+        th.Property(
+            "videos_table_name",
+            th.StringType,
+            description="The table name used to fetch video IDs from in the form of project.schema.table_name",
+        ),
+        th.Property(
+            "video_id_field",
+            th.StringType,
+            description="The name of the video ID field",
+        ),
+        th.Property(
+            "video_created_at_field",
+            th.StringType,
+            description="The name of the video created timestamp field",
         ),
     ).to_dict()
 

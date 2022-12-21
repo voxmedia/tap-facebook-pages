@@ -119,7 +119,7 @@ class FacebookPagesStream(RESTStream):
     def validate_response(self, response: requests.Response) -> None:
         # TODO: Handle 100 response code
         # TODO: Handle "reduce data you're asking for" for videos stream
-        if 400 <= response.status_code < 500:
+        if (400 <= response.status_code < 500) or (response.status_code == 100):
             msg = (
                 f"{response.status_code} Client Error: "
                 f"{response.reason} for path: {self.path}: "
@@ -128,9 +128,9 @@ class FacebookPagesStream(RESTStream):
             # If a post is not found when attempting to fetch insights
             # this should not stop the entire sync. Log and move on!
             not_exists_pattern = re.compile(
-                "^.*Object with ID '[0-9]+_[0-9]+' does not exist.*$"
+                "^.*Object with ID '[0-9]+.*' does not exist.*$"
             )
-            if response.status_code == 400 and not_exists_pattern.match(
+            if response.status_code in (100, 400) and not_exists_pattern.match(
                 response.json().get("error", {}).get("message")
             ):
                 self.logger.warning(f"Skipping record because object not found: {msg}")
