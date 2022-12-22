@@ -91,7 +91,7 @@
         "id": {
           "type": [
             "null",
-            "integer"
+            "string"
           ]
         },
         "name": {
@@ -271,6 +271,26 @@
         "null",
         "string"
       ]
+    },
+    "sponsor_tags": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "name": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "id": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      }
     }
   }
 }

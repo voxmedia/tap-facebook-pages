@@ -75,7 +75,7 @@ class AllPostsStream(FacebookPagesStream):
         posts_query = """
             select distinct post_id as id, created_time
             from `g9-data-warehouse-prod.facebook_posts.most_recent`
-            where 
+            where
                 split(post_id, '_')[safe_offset(0)] = @page_id
                 and date(created_time) >= date_sub(current_date, interval @insights_lookback_months month)
         """
@@ -117,7 +117,73 @@ class VideoStream(FacebookPagesStream):
         params = super().get_url_params(context, next_page_token)
         params["access_token"] = self.page_access_tokens[context["page_id"]]
         params["fields"] = ",".join(self.schema["properties"].keys())
+        # if self.get_starting_timestamp(context):
+        #     params["since"] = (
+        #         pendulum.instance(self.get_starting_timestamp(context))
+        #         .to_date_string()
+        #     )
+        # else:
+        #     # `since` date isn't included in the range so subtract 3 days
+        #     params["since"] = (
+        #         pendulum.parse(self.config["start_date"])
+        #         .subtract(days=3)
+        #         .to_date_string()
+        #     )
         return params
+
+
+class AllVideosStream(FacebookPagesStream):
+    name = "all_videos"
+    parent_stream_type = PagesStream
+    # path = "/{page_id}/published_posts"
+    primary_keys = ["id"]
+    replication_key = None
+    schema_filepath = SCHEMAS_DIR / "videos.json"
+    records_jsonpath = "$"
+
+    def request_records(self, context: Optional[dict]) -> Iterable[dict]:
+
+        videos_table_name = self.config.get("videos_table_name")
+        video_id_field = self.config.get("video_id_field")
+        video_created_at_field = self.config.get("video_created_at_field")
+
+        # TODO: Should we still paramaterize this? The `from`.id part in config feels a little weird
+        videos_query = f"""
+            select distinct {video_id_field} as id, timestamp({video_created_at_field}) as created_time
+            from `{videos_table_name}`
+            where
+                `from`.id = @page_id
+                and date(created_time) >= date_sub(current_date, interval @insights_lookback_months month)
+
+            union distinct
+
+            select distinct id, created_time
+            from `g9-data-warehouse-prod.facebook_videos.all`
+            where
+                `from`.id = @page_id
+                and date(created_time) >= date_sub(current_date, interval @insights_lookback_months month)
+        """
+        self.logger.info(f"Executing query: {videos_query}")
+        bigquery_client = bigquery.Client()
+        query_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("page_id", "STRING", context["page_id"]),
+                bigquery.ScalarQueryParameter(
+                    "insights_lookback_months",
+                    "INTEGER",
+                    self.config.get("insights_lookback_months"),
+                ),
+            ]
+        )
+        for row in bigquery_client.query(videos_query, job_config=query_config).result():
+            yield dict(row)
+
+    def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
+        return {
+            "page_id": context["page_id"],
+            "video_id": record["id"],
+            "created_time": record["created_time"].strftime("%Y-%m-%d"),
+        }
 
 
 class InsightsStream(FacebookPagesStream):
@@ -571,6 +637,182 @@ class RecentPostInsightsStream(FacebookPagesStream):
                                     values["end_time"]
                                 ).to_datetime_string()
                             yield values
+
+
+# class RecentPostEngagementInsightsStream(RecentInsightsStream):
+#     name = "recent_post_insights"
+#     metrics = [
+#         "post_engaged_users",
+#         "post_negative_feedback",
+#         "post_negative_feedback_unique",
+#         "post_negative_feedback_by_type",
+#         "post_negative_feedback_by_type_unique",
+#         "post_engaged_fan",
+#         "post_clicks",
+#         "post_clicks_unique",
+#         "post_clicks_by_type",
+#         "post_clicks_by_type_unique",
+#         "post_reactions_by_type_total",  # only metric we need from Page Post Reactions
+#     ]
+#
+#
+# class RecentPostImpressionsInsightsStream(RecentInsightsStream):
+#     name = "recent_post_impressions_insights"
+#     metrics = [
+#         "post_impressions",
+#         "post_impressions_unique",
+#         "post_impressions_paid",
+#         "post_impressions_paid_unique",
+#         "post_impressions_fan",
+#         "post_impressions_fan_unique",
+#         "post_impressions_fan_paid",
+#         "post_impressions_fan_paid_unique",
+#         "post_impressions_organic",
+#         "post_impressions_organic_unique",
+#         "post_impressions_viral",
+#         "post_impressions_viral_unique",
+#         "post_impressions_nonviral",
+#         "post_impressions_nonviral_unique",
+#         "post_impressions_by_story_type",
+#         "post_impressions_by_story_type_unique",
+#     ]
+#
+#
+# class RecentVideoPostInsightsStream(RecentInsightsStream):
+#     name = "recent_video_post_insights"
+#     metrics = [
+#         "post_video_complete_views_30s_autoplayed",
+#         "post_video_complete_views_30s_clicked_to_play",
+#         "post_video_complete_views_30s_organic",
+#         "post_video_complete_views_30s_paid",
+#         "post_video_complete_views_30s_unique",
+#         "post_video_avg_time_watched",
+#         "post_video_complete_views_organic",
+#         "post_video_complete_views_organic_unique",
+#         "post_video_complete_views_paid",
+#         "post_video_complete_views_paid_unique",
+#         "post_video_retention_graph",
+#         "post_video_retention_graph_clicked_to_play",
+#         "post_video_retention_graph_autoplayed",
+#         "post_video_views_organic",
+#         "post_video_views_organic_unique",
+#         "post_video_views_paid",
+#         "post_video_views_paid_unique",
+#         "post_video_length",
+#         "post_video_views",
+#         "post_video_views_unique",
+#         "post_video_views_autoplayed",
+#         "post_video_views_clicked_to_play",
+#         "post_video_views_60s_excludes_shorter",
+#         "post_video_views_10s",
+#         "post_video_views_10s_unique",
+#         "post_video_views_10s_autoplayed",
+#         "post_video_views_10s_clicked_to_play",
+#         "post_video_views_10s_organic",
+#         "post_video_views_10s_paid",
+#         "post_video_views_10s_sound_on",
+#         "post_video_views_sound_on",
+#         "post_video_view_time",
+#         "post_video_view_time_organic",
+#         "post_video_view_time_by_age_bucket_and_gender",
+#         "post_video_view_time_by_region_id",
+#         "post_video_views_by_distribution_type",
+#         "post_video_view_time_by_distribution_type",
+#         "post_video_view_time_by_country_id",
+#         # there last 3 metrics throw a permissions error
+#         # seems like we can access monetization from /insights but not /published_posts
+#         # "post_video_ad_break_ad_impressions",
+#         # "post_video_ad_break_earnings",
+#         # "post_video_ad_break_ad_cpm",
+#     ]
+
+class VideoInsightsStream(InsightsStream):
+    """https://developers.facebook.com/docs/graph-api/reference/video/video_insights/"""
+
+    name = "video_insights"
+    parent_stream_type = AllVideosStream
+    path = "/{video_id}/video_insights"
+    state_partitioning_keys = ["page_id"]
+    metrics = [  # TODO: allow selection from config, make this dynamic
+        "total_video_ad_break_ad_cpm",
+        "total_video_ad_break_ad_impressions",
+        "total_video_ad_break_earnings",
+        "blue_reels_play_count",
+        "post_impressions_unique",
+        "post_video_avg_time_watched",
+        "post_video_likes_by_reaction_type",
+        "post_video_social_actions",
+        "post_video_view_time",
+        "total_video_views",
+        "total_video_views_unique",
+        "total_video_views_autoplayed",
+        "total_video_views_clicked_to_play",
+        "total_video_views_organic",
+        "total_video_views_organic_unique",
+        "total_video_views_paid",
+        "total_video_views_paid_unique",
+        "total_video_views_sound_on",
+        "total_video_complete_views",
+        "total_video_complete_views_unique",
+        "total_video_complete_views_auto_played",
+        "total_video_complete_views_clicked_to_play",
+        "total_video_complete_views_organic",
+        "total_video_complete_views_organic_unique",
+        "total_video_complete_views_paid",
+        "total_video_complete_views_paid_unique",
+        "total_video_10s_views",
+        "total_video_10s_views_unique",
+        "total_video_10s_views_auto_played",
+        "total_video_10s_views_clicked_to_play",
+        "total_video_10s_views_organic",
+        "total_video_10s_views_paid",
+        "total_video_10s_views_sound_on",
+        "total_video_15s_views",
+        "total_video_60s_excludes_shorter_views",
+        "total_video_retention_graph",
+        "total_video_retention_graph_autoplayed",
+        "total_video_retention_graph_clicked_to_play",
+        "total_video_avg_time_watched",
+        "total_video_view_total_time",
+        "total_video_view_total_time_organic",
+        "total_video_view_total_time_paid",
+        "total_video_impressions",
+        "total_video_impressions_unique",
+        "total_video_impressions_paid_unique",
+        "total_video_impressions_paid",
+        "total_video_impressions_organic_unique",
+        "total_video_impressions_organic",
+        "total_video_impressions_viral_unique",
+        "total_video_impressions_viral",
+        "total_video_impressions_fan_unique",
+        "total_video_impressions_fan",
+        "total_video_impressions_fan_paid_unique",
+        "total_video_impressions_fan_paid",
+        "total_video_stories_by_action_type",
+        "total_video_reactions_by_type_total",
+        "total_video_view_time_by_age_bucket_and_gender",
+        "total_video_view_time_by_region_id",
+        "total_video_views_by_distribution_type",
+        "total_video_view_time_by_distribution_type",
+    ]
+
+    def get_url_params(
+        self, context: Optional[dict], next_page_token: Optional[Any]
+    ) -> Dict[str, Any]:
+        params = super().get_url_params(context, next_page_token)
+        # params["period"] = "day"  # TODO: might need separate day and lifetime base classes
+        # if no state is found, get all data since the post was published
+        # this is guaranteed to be in the last X months, where X is the configured `insights_lookback_months`
+        params["since"] = (
+            pendulum.instance(
+                self.get_starting_timestamp(context) or context["created_time"]
+            )
+            .subtract(days=1)
+            .to_date_string()
+        )
+        params["access_token"] = self.page_access_tokens[context["page_id"]]
+        params["metric"] = ",".join(self.metrics)
+        return params
 
 
 # deprecated in favor of PagePostsInsightsStream
