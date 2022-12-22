@@ -117,18 +117,18 @@ class VideoStream(FacebookPagesStream):
         params = super().get_url_params(context, next_page_token)
         params["access_token"] = self.page_access_tokens[context["page_id"]]
         params["fields"] = ",".join(self.schema["properties"].keys())
-        if self.get_starting_timestamp(context):
-            params["since"] = (
-                pendulum.instance(self.get_starting_timestamp(context))
-                .to_date_string()
-            )
-        else:
-            # `since` date isn't included in the range so subtract 1 day
-            params["since"] = (
-                pendulum.parse(self.config["start_date"])
-                .subtract(days=1)
-                .to_date_string()
-            )
+        # if self.get_starting_timestamp(context):
+        #     params["since"] = (
+        #         pendulum.instance(self.get_starting_timestamp(context))
+        #         .to_date_string()
+        #     )
+        # else:
+        #     # `since` date isn't included in the range so subtract 3 days
+        #     params["since"] = (
+        #         pendulum.parse(self.config["start_date"])
+        #         .subtract(days=3)
+        #         .to_date_string()
+        #     )
         return params
 
 
