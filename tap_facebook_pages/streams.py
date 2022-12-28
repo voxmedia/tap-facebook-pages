@@ -761,6 +761,7 @@ class VideoInsightsLifetimeStream(InsightsStream):
         self, context: Optional[dict], next_page_token: Optional[Any]
     ) -> Dict[str, Any]:
         params = super().get_url_params(context, next_page_token)
+        params["period"] = "lifetime"
         # if no state is found, get all data since the post was published
         # this is guaranteed to be in the last X months, where X is the configured `insights_lookback_months`
         params["since"] = (
