@@ -726,10 +726,10 @@ class RecentPostInsightsStream(FacebookPagesStream):
 #         # "post_video_ad_break_ad_cpm",
 #     ]
 
-class VideoInsightsStream(InsightsStream):
+class VideoInsightsLifetimeStream(InsightsStream):
     """https://developers.facebook.com/docs/graph-api/reference/video/video_insights/"""
 
-    name = "video_insights"
+    name = "video_insights_lifetime"
     parent_stream_type = AllVideosStream
     path = "/{video_id}/video_insights"
     state_partitioning_keys = ["page_id"]
@@ -800,18 +800,36 @@ class VideoInsightsStream(InsightsStream):
         self, context: Optional[dict], next_page_token: Optional[Any]
     ) -> Dict[str, Any]:
         params = super().get_url_params(context, next_page_token)
-        # params["period"] = "day"  # TODO: might need separate day and lifetime base classes
+        params["period"] = "lifetime"
         # if no state is found, get all data since the post was published
         # this is guaranteed to be in the last X months, where X is the configured `insights_lookback_months`
         params["since"] = (
             pendulum.instance(
                 self.get_starting_timestamp(context) or context["created_time"]
             )
-            .subtract(days=1)
+            .subtract(days=3)
             .to_date_string()
         )
         params["access_token"] = self.page_access_tokens[context["page_id"]]
         params["metric"] = ",".join(self.metrics)
+        return params
+
+
+class VideoInsightsDailyStream(VideoInsightsLifetimeStream):
+    """https://developers.facebook.com/docs/graph-api/reference/video/video_insights/"""
+
+    name = "video_insights_daily"
+    metrics = [
+        "total_video_ad_break_ad_cpm",
+        "total_video_ad_break_ad_impressions",
+        "total_video_ad_break_earnings",
+    ]
+
+    def get_url_params(
+        self, context: Optional[dict], next_page_token: Optional[Any]
+    ) -> Dict[str, Any]:
+        params = super().get_url_params(context, next_page_token)
+        params["period"] = "day"
         return params
 
 
