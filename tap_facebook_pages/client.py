@@ -125,13 +125,22 @@ class FacebookPagesStream(RESTStream):
                 f"{response.reason} for path: {self.path}: "
                 f"{response.json().get('error', {}).get('message')}"
             )
-            # If a post is not found when attempting to fetch insights
+            # If a video/post is not found when attempting to fetch insights
             # this should not stop the entire sync. Log and move on!
             not_exists_pattern = re.compile(
                 "^.*Object with ID '[0-9]+.*' does not exist.*$"
             )
-            if response.status_code in (100, 400) and not_exists_pattern.match(
-                response.json().get("error", {}).get("message")
+            # Unclear why this error is thrown but the assumption
+            # is that the video/post no longer exists. Skip these.
+            unsupported_pattern = re.compile(
+                "^.*Unsupported request - method type: get.*$"
+            )
+
+            error_message = response.json().get("error", {}).get("message")
+
+            if response.status_code in (100, 400) and (
+                not_exists_pattern.match(error_message)
+                or unsupported_pattern.match(error_message)
             ):
                 self.logger.warning(f"Skipping record because object not found: {msg}")
                 return
@@ -139,7 +148,7 @@ class FacebookPagesStream(RESTStream):
             # even though we should already be using one. A retry appears to resolve this.
             if (
                 response.status_code == 400
-                and response.json().get("error", {}).get("message")
+                and error_message
                 == "(#190) This method must be called with a Page Access Token"
             ):
                 raise RetriableAPIError(msg)
@@ -147,14 +156,14 @@ class FacebookPagesStream(RESTStream):
                 "^.*Monetization metrics are only visible for Page admins.*$"
             )
             if response.status_code == 403 and monetization_access_pattern.match(
-                response.json().get("error", {}).get("message")
+                error_message
             ):
                 self.logger.warning(f"Skipping record because: {msg}")
                 return
             # FB will occasionally throw a 500 with this vague message - might as well retry :shrug:
             # if (
             #     response.status_code == 500
-            #     and response.json().get("error", {}).get("message") ==
+            #     and error_message ==
             #     "An unknown error occurred"
             # ):
             #     raise RetriableAPIError(msg)
