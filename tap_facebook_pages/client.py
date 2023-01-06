@@ -125,13 +125,22 @@ class FacebookPagesStream(RESTStream):
                 f"{response.reason} for path: {self.path}: "
                 f"{response.json().get('error', {}).get('message')}"
             )
-            # If a post is not found when attempting to fetch insights
+            # If a video/post is not found when attempting to fetch insights
             # this should not stop the entire sync. Log and move on!
             not_exists_pattern = re.compile(
                 "^.*Object with ID '[0-9]+.*' does not exist.*$"
             )
-            if response.status_code in (100, 400) and not_exists_pattern.match(
-                response.json().get("error", {}).get("message")
+            # Unclear why this error is thrown but the assumption
+            # is that the video/post no longer exists. Skip these.
+            unsupported_pattern = re.compile(
+                "^.*Unsupported request - method type: get.*$"
+            )
+
+            error_message = response.json().get("error", {}).get("message")
+
+            if response.status_code in (100, 400) and (
+                not_exists_pattern.match(error_message)
+                or unsupported_pattern.match(error_message)
             ):
                 self.logger.warning(f"Skipping record because object not found: {msg}")
                 return
