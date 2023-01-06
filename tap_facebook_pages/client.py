@@ -148,7 +148,7 @@ class FacebookPagesStream(RESTStream):
             # even though we should already be using one. A retry appears to resolve this.
             if (
                 response.status_code == 400
-                and response.json().get("error", {}).get("message")
+                and error_message
                 == "(#190) This method must be called with a Page Access Token"
             ):
                 raise RetriableAPIError(msg)
@@ -156,14 +156,14 @@ class FacebookPagesStream(RESTStream):
                 "^.*Monetization metrics are only visible for Page admins.*$"
             )
             if response.status_code == 403 and monetization_access_pattern.match(
-                response.json().get("error", {}).get("message")
+                error_message
             ):
                 self.logger.warning(f"Skipping record because: {msg}")
                 return
             # FB will occasionally throw a 500 with this vague message - might as well retry :shrug:
             # if (
             #     response.status_code == 500
-            #     and response.json().get("error", {}).get("message") ==
+            #     and error_message ==
             #     "An unknown error occurred"
             # ):
             #     raise RetriableAPIError(msg)
