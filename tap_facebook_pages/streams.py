@@ -151,18 +151,18 @@ class AllVideosStream(FacebookPagesStream):
         videos_query = f"""
             with video_tables as (
               select distinct {video_id_field} as id, timestamp({video_created_at_field}) as created_time
-                          from `{videos_table_name}`
-                          where
-                              `from`.id = @page_id
-                              and date(created_time) >= date_sub(current_date, interval @insights_lookback_months month)
-            
-                          union distinct
-            
-                          select distinct id, created_time
-                          from `g9-data-warehouse-prod.facebook_videos.all`
-                          where
-                              `from`.id = @page_id
-                              and date(created_time) >= date_sub(current_date, interval @insights_lookback_months month)
+              from `{videos_table_name}`
+              where
+                  `from`.id = @page_id
+                  and date(created_time) >= date_sub(current_date, interval @insights_lookback_months month)
+
+              union distinct
+
+              select distinct id, created_time
+              from `g9-data-warehouse-prod.facebook_videos.all`
+              where
+                  `from`.id = @page_id
+                  and date(created_time) >= date_sub(current_date, interval @insights_lookback_months month)
             )
             select * from video_tables
             
