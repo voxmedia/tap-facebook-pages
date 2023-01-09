@@ -149,19 +149,30 @@ class AllVideosStream(FacebookPagesStream):
 
         # TODO: Should we still paramaterize this? The `from`.id part in config feels a little weird
         videos_query = f"""
-            select distinct {video_id_field} as id, timestamp({video_created_at_field}) as created_time
-            from `{videos_table_name}`
-            where
-                `from`.id = @page_id
-                and date(created_time) >= date_sub(current_date, interval @insights_lookback_months month)
-
+            with video_tables as (
+              select distinct {video_id_field} as id, timestamp({video_created_at_field}) as created_time
+                          from `{videos_table_name}`
+                          where
+                              `from`.id = @page_id
+                              and date(created_time) >= date_sub(current_date, interval @insights_lookback_months month)
+            
+                          union distinct
+            
+                          select distinct id, created_time
+                          from `g9-data-warehouse-prod.facebook_videos.all`
+                          where
+                              `from`.id = @page_id
+                              and date(created_time) >= date_sub(current_date, interval @insights_lookback_months month)
+            )
+            select * from video_tables
+            
             union distinct
-
-            select distinct id, created_time
-            from `g9-data-warehouse-prod.facebook_videos.all`
-            where
-                `from`.id = @page_id
-                and date(created_time) >= date_sub(current_date, interval @insights_lookback_months month)
+            
+            -- some video IDs exist in the posts table but not anywhere else
+            select posts.video.id, created_at 
+            from `nymag-analytics-157315.organic_social.dim__facebook_posts` posts
+            left join video_tables on posts.video.id = video_tables.id
+            where video_tables.id is null
         """
         self.logger.info(f"Executing query: {videos_query}")
         bigquery_client = bigquery.Client()
