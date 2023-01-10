@@ -136,11 +136,17 @@ class FacebookPagesStream(RESTStream):
                 "^.*Unsupported request - method type: get.*$"
             )
 
+            # This error can be thrown on videos/posts that don't belong to us
+            permissions_error = re.compile(
+                "^.*This endpoint requires the '.*' permission.*$"
+            )
+
             error_message = response.json().get("error", {}).get("message")
 
             if response.status_code in (100, 400) and (
                 not_exists_pattern.match(error_message)
                 or unsupported_pattern.match(error_message)
+                or permissions_error.match(error_message)
             ):
                 self.logger.warning(f"Skipping record because object not found: {msg}")
                 return
