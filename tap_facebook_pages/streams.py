@@ -172,7 +172,10 @@ class AllVideosStream(FacebookPagesStream):
             select posts.video.id, created_at 
             from `nymag-analytics-157315.organic_social.dim__facebook_posts` posts
             left join video_tables on posts.video.id = video_tables.id
-            where video_tables.id is null and posts.page_id = @page_id
+            where 
+                video_tables.id is null 
+                and posts.page_id = @page_id
+                and date(posts.created_at) >= date_sub(current_date, interval @insights_lookback_months month)
         """
         self.logger.info(f"Executing query: {videos_query}")
         bigquery_client = bigquery.Client()
