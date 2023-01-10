@@ -173,7 +173,8 @@ class AllVideosStream(FacebookPagesStream):
             from `nymag-analytics-157315.organic_social.dim__facebook_posts` posts
             left join video_tables on posts.video.id = video_tables.id
             where 
-                video_tables.id is null 
+                video_tables.id is null
+                and posts.video.id is not null
                 and posts.page_id = @page_id
                 and date(posts.created_at) >= date_sub(current_date, interval @insights_lookback_months month)
         """
