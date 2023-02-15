@@ -132,12 +132,6 @@
         "boolean"
       ]
     },
-    "is_reference_only": {
-      "type": [
-        "null",
-        "boolean"
-      ]
-    },
     "length": {
       "type": [
         "null",
